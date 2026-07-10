@@ -120,11 +120,24 @@ const sessionSchema = z.object({
 	 * Default: 0.5 (renew when >50% of idle window has elapsed)
 	 */
 	renewalThreshold: z.coerce.number().positive().max(1).default(0.5),
-	/** Cookie name for the session ID. Default: __sf_session */
-	cookieName: z.string().default('__sf_session'),
+	/** Cookie name for the session ID. Default: __Host-session-token */
+	cookieName: z.string().default('__Host-session-token'),
+});
+
+const cstfTokenSchema = z.object({
+	/** Maximum age of the CSRF token in seconds. Default: 7 days */
+	maxAge: z.coerce
+		.number()
+		.int()
+		.positive()
+		.default(7 * 24 * 60 * 60),
+	/** Cookie name for the CSRF token. Default: __Host-csrf-token */
+	cookieName: z.string().default('__Host-csrf-token'),
 });
 
 const securitySchema = z.object({
+	/** Path prefix for the storefront auth endpoints. Default: /store */
+	pathPrefix: z.string().default('/store'),
 	/** Maximum failed attempts before an account lockout is triggered. Default: 5 */
 	lockoutThreshold: z.coerce.number().int().positive().default(5),
 	/** Duration of the account lockout in milliseconds. Default: 15 minutes */
@@ -140,6 +153,7 @@ const storefrontAuthSchema = z.object({
 	redis: redisSchema.default(() => redisSchema.parse({})),
 	rateLimiting: rateLimitingSchema.default(() => rateLimitingSchema.parse({})),
 	session: sessionSchema.default(() => sessionSchema.parse({})),
+	csrf: cstfTokenSchema.default(() => cstfTokenSchema.parse({})),
 	security: securitySchema.default(() => securitySchema.parse({})),
 });
 
