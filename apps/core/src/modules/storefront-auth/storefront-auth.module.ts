@@ -33,6 +33,7 @@ import {
 } from './infrastructure/crypto/argon2.provider';
 import { Argon2PasswordHasher } from './infrastructure/crypto/password-hasher';
 import { StorefrontAuthController } from './infrastructure/http/controllers/storefront-auth.controller';
+import { StorefrontCsrfGuard } from './infrastructure/http/guards/storefront-csrf.guard';
 import { EmailVerificationMapper } from './infrastructure/persistance/mappers/email-verification.mapper';
 import { DrizzleEmailVerificationRepository } from './infrastructure/persistance/repositories/drizzle-email-verification.repository';
 import { DrizzleStorefrontUserRepository } from './infrastructure/persistance/repositories/drizzle-storefront-user.repository';
@@ -48,6 +49,7 @@ import { StorefrontRedisProvider } from './infrastructure/redis/redis.provider';
 		Argon2OptionsProvider,
 		StorefrontRedisProvider,
 		EmailVerificationMapper,
+		StorefrontCsrfGuard,
 		{
 			provide: RATE_LIMITER,
 			useClass: RedisRateLimiterAdapter,
@@ -109,6 +111,6 @@ import { StorefrontRedisProvider } from './infrastructure/redis/redis.provider';
 			useClass: ValidateSessionUseCase,
 		},
 	],
-	exports: [STOREFRONT_VALIDATE_SESSION_UC],
+	exports: [STOREFRONT_VALIDATE_SESSION_UC, StorefrontCsrfGuard],
 })
 export class StorefrontAuthModule {}

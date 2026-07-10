@@ -12,6 +12,7 @@ import { UsersModule } from '@modules/platform-users/users.module';
 import { QueueModule } from '@modules/queue';
 import { StoreModule } from '@modules/store';
 import { StorefrontAuthModule } from '@modules/storefront-auth';
+import { StorefrontCsrfGuard } from '@modules/storefront-auth/infrastructure/http/guards/storefront-csrf.guard';
 import { WebhooksModule } from '@modules/webhooks/webhooks.module';
 import { CacheModule } from '@nestjs/cache-manager';
 import { Module } from '@nestjs/common';
@@ -53,7 +54,7 @@ import { ZodSerializerInterceptor, ZodValidationPipe } from 'nestjs-zod';
 
 		RouterModule.register([
 			{
-				path: ':storeId',
+				path: '/stores/:storeId',
 				module: StorefrontAuthModule,
 			},
 		]),
@@ -63,6 +64,10 @@ import { ZodSerializerInterceptor, ZodValidationPipe } from 'nestjs-zod';
 		{
 			provide: APP_GUARD,
 			useClass: ThrottlerGuard,
+		},
+		{
+			provide: APP_GUARD,
+			useClass: StorefrontCsrfGuard,
 		},
 		// Pipes
 		{
