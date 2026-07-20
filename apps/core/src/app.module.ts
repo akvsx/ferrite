@@ -13,6 +13,7 @@ import { QueueModule } from '@modules/queue';
 import { StoreModule } from '@modules/store';
 import { StorefrontAuthModule } from '@modules/storefront-auth';
 import { StorefrontCsrfGuard } from '@modules/storefront-auth/infrastructure/http/guards/storefront-csrf.guard';
+import { StorefrontUsersModule } from '@modules/storefront-users';
 import { WebhooksModule } from '@modules/webhooks/webhooks.module';
 import { CacheModule } from '@nestjs/cache-manager';
 import { Module } from '@nestjs/common';
@@ -51,6 +52,7 @@ import { ZodSerializerInterceptor, ZodValidationPipe } from 'nestjs-zod';
 		UsersModule,
 		OnboardingModule,
 		NotificationsModule,
+		StorefrontUsersModule,
 
 		RouterModule.register([
 			{
