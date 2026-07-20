@@ -4,6 +4,7 @@ import type { Request } from '@common/types/request';
 import type { FerriteConfig } from '@core/config/ferrite.schema';
 import { AuthStep } from '@ferrite/schema/storefront-auth/auth-step';
 import { extractCookie } from '@libs/http/extractCookie';
+import { UseRealm } from '@modules/auth';
 import { IncompleteConfigurationError } from '@modules/store';
 import { AccountLockedError } from '@modules/storefront-auth/domain/errors/account-locked.error';
 import { EmailAlreadyRegisteredError } from '@modules/storefront-auth/domain/errors/email-already-registered.error';
@@ -77,7 +78,7 @@ import { VerifyEmailDTO } from '../dto/verify-email.dto';
 
 @ApiTags('Storefront Auth')
 @Controller('/auth')
-@PublicRoute()
+@UseRealm('storefront')
 export class StorefrontAuthController {
 	private readonly cookieName: string;
 	private readonly sessionMaxAgeS: number;
@@ -118,6 +119,7 @@ export class StorefrontAuthController {
 
 	@Post('login')
 	@HttpCode(HttpStatus.OK)
+	@PublicRoute()
 	@LoginUserDocs()
 	@SkipCsrf()
 	async login(
@@ -219,6 +221,7 @@ export class StorefrontAuthController {
 	}
 
 	@Post('register')
+	@PublicRoute()
 	@RegisterUserDocs()
 	@SkipCsrf()
 	async register(
@@ -252,6 +255,7 @@ export class StorefrontAuthController {
 
 	@Post('verify-email')
 	@HttpCode(HttpStatus.OK)
+	@PublicRoute()
 	@VerifyEmailDocs()
 	@SkipCsrf()
 	async verifyEmail(
@@ -283,6 +287,7 @@ export class StorefrontAuthController {
 
 	@Post('resend-verification-email')
 	@HttpCode(HttpStatus.OK)
+	@PublicRoute()
 	@ResendVerificationEmailDocs()
 	@SkipCsrf()
 	async resendVerificationEmail(
