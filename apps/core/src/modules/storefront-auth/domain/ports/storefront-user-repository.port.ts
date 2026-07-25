@@ -58,4 +58,10 @@ export interface IStorefrontUserRepository {
 		storeId: string,
 		tx?: ITransactionContext
 	): Promise<void>;
+
+	updateLastLoginAt(
+		id: string,
+		storeId: string,
+		tx?: ITransactionContext
+	): Promise<void>;
 }

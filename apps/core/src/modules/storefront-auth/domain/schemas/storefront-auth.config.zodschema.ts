@@ -101,10 +101,46 @@ const rateLimitingSchema = z.object({
 	resendCooldownMs: z.coerce.number().int().positive().default(60_000),
 });
 
+const sessionSchema = z.object({
+	/** Sliding-window idle timeout in milliseconds. Default: 7 days */
+	idleLifetimeMs: z.coerce
+		.number()
+		.int()
+		.positive()
+		.default(7 * 24 * 60 * 60 * 1000),
+	/** Hard ceiling for session lifetime in milliseconds. Default: 30 days */
+	absoluteLifetimeMs: z.coerce
+		.number()
+		.int()
+		.positive()
+		.default(30 * 24 * 60 * 60 * 1000),
+	/**
+	 * Fraction of idleLifetimeMs that must have elapsed before the TTL is renewed.
+	 * Avoids a Redis write on every single request.
+	 * Default: 0.5 (renew when >50% of idle window has elapsed)
+	 */
+	renewalThreshold: z.coerce.number().positive().max(1).default(0.5),
+	/** Cookie name for the session ID. Default: __sf_session */
+	cookieName: z.string().default('__sf_session'),
+});
+
+const securitySchema = z.object({
+	/** Maximum failed attempts before an account lockout is triggered. Default: 5 */
+	lockoutThreshold: z.coerce.number().int().positive().default(5),
+	/** Duration of the account lockout in milliseconds. Default: 15 minutes */
+	lockoutDurationMs: z.coerce
+		.number()
+		.int()
+		.positive()
+		.default(15 * 60 * 1000),
+});
+
 const storefrontAuthSchema = z.object({
 	argon2: argon2Schema.default(() => argon2Schema.parse({})),
 	redis: redisSchema.default(() => redisSchema.parse({})),
 	rateLimiting: rateLimitingSchema.default(() => rateLimitingSchema.parse({})),
+	session: sessionSchema.default(() => sessionSchema.parse({})),
+	security: securitySchema.default(() => securitySchema.parse({})),
 });
 
 export const storefrontAuth = storefrontAuthSchema.default(() =>

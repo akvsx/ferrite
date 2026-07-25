@@ -450,4 +450,51 @@ export class DrizzleStorefrontUserRepository
 					)
 		);
 	}
+
+	async updateLastLoginAt(
+		id: string,
+		storeId: string,
+		tx?: ITransactionContext
+	): Promise<void> {
+		return traceDbOp(
+			this.tracer,
+			'db.storefrontUsers.updateLastLoginAt',
+			{ 'db.table': 'storefront_users', 'db.operation': 'update' },
+			async () => {
+				if (tx) {
+					return this.runUpdateLastLoginAt(tx, id, storeId);
+				}
+				return this.uow.execute((ctx) =>
+					this.runUpdateLastLoginAt(ctx, id, storeId)
+				);
+			}
+		);
+	}
+
+	private async runUpdateLastLoginAt(
+		ctx: ITransactionContext,
+		id: string,
+		storeId: string
+	): Promise<void> {
+		const executor = DrizzleUnitOfWork.unwrap(ctx);
+		await traceDbOp(
+			this.tracer,
+			'db.storefrontUsers.updateLastLoginAtValue',
+			{ 'db.table': 'storefront_users', 'db.operation': 'update' },
+			() =>
+				executor
+					.update(storefrontUsers)
+					.set({
+						lastLoginAt: new Date(),
+						updatedAt: new Date(),
+					})
+					.where(
+						and(
+							eq(storefrontUsers.id, id),
+							eq(storefrontUsers.storeId, storeId),
+							isNull(storefrontUsers.deletedAt)
+						)
+					)
+		);
+	}
 }

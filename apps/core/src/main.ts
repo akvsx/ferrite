@@ -1,5 +1,6 @@
 import { IncomingMessage, ServerResponse } from 'node:http';
 import { AppLogger } from '@core/logger/logger.service';
+import cookie from '@fastify/cookie';
 import helmet from '@fastify/helmet';
 import { registerShutdownHook } from '@libs/hooks/register-shutdown';
 import { logIncomingRequest } from '@libs/misc/log-incoming-req.lib';
@@ -47,7 +48,9 @@ async function bootstrap() {
 	registerShutdownHook(app);
 
 	app.useLogger(await app.resolve(AppLogger));
+
 	await app.register(helmet);
+	await app.register(cookie);
 
 	app.enableCors({
 		methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',

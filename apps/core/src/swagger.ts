@@ -3,9 +3,9 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 export const setupSwagger = (app: INestApplication) => {
 	const config = new DocumentBuilder()
-		.setTitle('Legalease API')
+		.setTitle('Ferrite Core API')
 		.setVersion('1.0')
-		.setDescription('API documentation for Legalease')
+		.setDescription('API documentation for Ferrite Core')
 		.addBearerAuth(
 			{
 				type: 'http',

@@ -11,12 +11,26 @@ export const LoginUserDocs = () =>
 		}),
 		ApiResponse({
 			status: 200,
-			description: 'Successfully logged in. Returns auth token.',
+			description:
+				'Successfully logged in. Returns user profile and sets session cookie.',
 			schema: {
 				type: 'object',
 				properties: {
 					step: { type: 'string', example: 'authenticated' },
-					accessToken: { type: 'string', example: 'dummy_token' },
+					user: {
+						type: 'object',
+						properties: {
+							id: { type: 'string', format: 'uuid' },
+							storeId: { type: 'string', format: 'uuid' },
+							email: { type: 'string', format: 'email' },
+							displayName: { type: 'string', nullable: true },
+							mfaEnabled: { type: 'boolean' },
+							metadata: { type: 'object' },
+							createdAt: { type: 'string', format: 'date-time' },
+							updatedAt: { type: 'string', format: 'date-time' },
+							emailVerified: { type: 'boolean' },
+						},
+					},
 				},
 			},
 		}),
@@ -27,10 +41,67 @@ export const LoginUserDocs = () =>
 				type: 'object',
 				properties: {
 					statusCode: { type: 'number', example: 401 },
-					message: { type: 'string', example: 'Invalid credentials' },
+					message: { type: 'string', example: 'Invalid email or password' },
 					error: { type: 'string', example: 'Unauthorized' },
 				},
 			},
+		})
+	);
+
+export const LogoutDocs = () =>
+	applyDecorators(
+		ApiOperation({ summary: 'Logout a storefront user' }),
+		ApiResponse({
+			status: 200,
+			description: 'Successfully logged out. Clears session cookie.',
+			schema: {
+				type: 'object',
+				properties: {
+					step: { type: 'string', example: 'logged_out' },
+				},
+			},
+		})
+	);
+
+export const LogoutAllDocs = () =>
+	applyDecorators(
+		ApiOperation({ summary: 'Logout a storefront user from all devices' }),
+		ApiResponse({
+			status: 200,
+			description:
+				'Successfully logged out from all devices. Clears session cookie.',
+			schema: {
+				type: 'object',
+				properties: {
+					step: { type: 'string', example: 'logged_out_all' },
+				},
+			},
+		})
+	);
+
+export const GetSessionDocs = () =>
+	applyDecorators(
+		ApiOperation({ summary: 'Get current session' }),
+		ApiResponse({
+			status: 200,
+			description: 'Successfully retrieved current session and user.',
+		}),
+		ApiResponse({
+			status: 401,
+			description: 'Unauthorized (session invalid or missing).',
+		})
+	);
+
+export const GetSessionsDocs = () =>
+	applyDecorators(
+		ApiOperation({ summary: 'Get all active sessions for the current user' }),
+		ApiResponse({
+			status: 200,
+			description: 'Successfully retrieved all active sessions.',
+		}),
+		ApiResponse({
+			status: 401,
+			description: 'Unauthorized.',
 		})
 	);
 

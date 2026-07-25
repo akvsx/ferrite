@@ -8,10 +8,10 @@ import { AuthModule } from '@modules/auth/auth.module';
 import { CurrencyModule } from '@modules/currency';
 import { HealthModule } from '@modules/health/health.module';
 import { OnboardingModule } from '@modules/onboarding/onboarding.module';
+import { UsersModule } from '@modules/platform-users/users.module';
 import { QueueModule } from '@modules/queue';
 import { StoreModule } from '@modules/store';
 import { StorefrontAuthModule } from '@modules/storefront-auth';
-import { UsersModule } from '@modules/users/users.module';
 import { WebhooksModule } from '@modules/webhooks/webhooks.module';
 import { CacheModule } from '@nestjs/cache-manager';
 import { Module } from '@nestjs/common';
@@ -22,6 +22,7 @@ import {
 	APP_INTERCEPTOR,
 	APP_PIPE,
 	HttpAdapterHost,
+	RouterModule,
 } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { NotificationsModule } from '@notifications/index';
@@ -49,6 +50,13 @@ import { ZodSerializerInterceptor, ZodValidationPipe } from 'nestjs-zod';
 		UsersModule,
 		OnboardingModule,
 		NotificationsModule,
+
+		RouterModule.register([
+			{
+				path: ':storeId',
+				module: StorefrontAuthModule,
+			},
+		]),
 	],
 	providers: [
 		// Guards
