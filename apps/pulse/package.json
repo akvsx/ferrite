@@ -13,7 +13,7 @@
 	"dependencies": {
 		"@base-ui/react": "^1.6.0",
 		"@clerk/nextjs": "^7.2.1",
-		"@clerk/shared": "^4.13.1",
+		"@clerk/shared": "^4.23.0",
 		"@ferrite/api": "workspace:*",
 		"@ferrite/react": "workspace:*",
 		"@ferrite/schema": "workspace:*",
