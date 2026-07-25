@@ -46,6 +46,7 @@ import {
 	ForbiddenException,
 	Get,
 	HttpCode,
+	HttpException,
 	HttpStatus,
 	Inject,
 	InternalServerErrorException,
@@ -132,7 +133,9 @@ export class StorefrontAuthController {
 			...payload,
 			storeId,
 			ipAddress: request.ip,
-			userAgent: request.headers['user-agent'] ?? '',
+			userAgent: Array.isArray(request.headers['user-agent'])
+				? (request.headers['user-agent'][0] ?? '')
+				: (request.headers['user-agent'] ?? ''),
 		});
 
 		if (result.isErr()) {
@@ -145,7 +148,7 @@ export class StorefrontAuthController {
 				throw new ForbiddenException(error.message);
 			}
 			if (error instanceof RateLimitedError) {
-				throw error; // Already an HttpException (429)
+				throw new HttpException(error.message, HttpStatus.TOO_MANY_REQUESTS);
 			}
 			if (error instanceof MfaRequiredError) {
 				return {
@@ -270,7 +273,10 @@ export class StorefrontAuthController {
 
 		if (result.isErr()) {
 			if (result.error instanceof RateLimitedError) {
-				throw result.error;
+				throw new HttpException(
+					result.error.message,
+					HttpStatus.TOO_MANY_REQUESTS
+				);
 			}
 			if (result.error instanceof IncompleteConfigurationError) {
 				throw new InternalServerErrorException({
@@ -302,7 +308,10 @@ export class StorefrontAuthController {
 
 		if (result.isErr()) {
 			if (result.error instanceof RateLimitedError) {
-				throw result.error;
+				throw new HttpException(
+					result.error.message,
+					HttpStatus.TOO_MANY_REQUESTS
+				);
 			}
 			if (result.error instanceof IncompleteConfigurationError) {
 				throw new InternalServerErrorException({
@@ -311,7 +320,9 @@ export class StorefrontAuthController {
 					isPublic: true,
 				});
 			}
-			throw new UnprocessableEntityException(result.error.message);
+			throw new InternalServerErrorException(
+				'Failed to send verification email'
+			);
 		}
 
 		return { step: AuthStep.EMAIL_VERIFICATION_REQUIRED };
@@ -328,7 +339,11 @@ export class StorefrontAuthController {
 		const sessionId = extractCookie(request, this.cookieName);
 
 		if (sessionId) {
-			await this.logoutUseCase.execute({ sessionId });
+			const result = await this.logoutUseCase.execute({ sessionId });
+
+			if (result.isErr()) {
+				throw new UnprocessableEntityException('Logout failed');
+			}
 		}
 
 		// Clear the session & CSRF cookies on this client
