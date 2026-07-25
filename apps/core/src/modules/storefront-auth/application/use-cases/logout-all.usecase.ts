@@ -46,7 +46,7 @@ export class LogoutAllUseCase implements IStorefrontLogoutAll {
 				await this.sessionRepo.deleteAllByUserId(session.userId, input.storeId);
 				return ok(undefined);
 			},
-			{ 'auth.sessionId': input.sessionId, 'auth.storeId': input.storeId }
+			{ 'auth.storeId': input.storeId }
 		);
 	}
 }

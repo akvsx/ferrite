@@ -25,7 +25,7 @@ export class LogoutUseCase implements IStorefrontLogout {
 	async execute(input: LogoutInput): Promise<Result<void, Error>> {
 		return this.tracer.withSpan('storefront_auth.logout', async () => {
 			await this.sessionRepo.deleteById(input.sessionId);
-			this.logger.debug(`Session deleted: sessionId=${input.sessionId}`);
+			this.logger.debug('Session deleted');
 			return ok();
 		});
 	}

@@ -66,7 +66,7 @@ export class GetSessionsUseCase implements IStorefrontGetSessions {
 
 				return ok(validSessions);
 			},
-			{ 'auth.sessionId': input.sessionId, 'auth.storeId': input.storeId }
+			{ 'auth.storeId': input.storeId }
 		);
 	}
 }
