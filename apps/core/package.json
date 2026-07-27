@@ -65,7 +65,7 @@
 		"reflect-metadata": "^0.2.2",
 		"rxjs": "^7.8.1",
 		"svix": "^1.95.2",
-		"uuid": "^14.0.0",
+		"uuid": "^14.0.1",
 		"zod": "^4.4.1"
 	},
 	"devDependencies": {
