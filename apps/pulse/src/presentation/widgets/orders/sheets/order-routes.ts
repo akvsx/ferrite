@@ -11,10 +11,12 @@ import { registerScreen } from '@/presentation/sheet-router/screen-registry';
 // Lazy-load screen components
 
 const OrderDetailsScreen = lazy(() => import('./order-details-screen'));
-const ProductDetailsScreen = lazy(() => import('./product-details-screen'));
 const PaymentDetailsScreen = lazy(() => import('./payment-details-screen'));
 const ShipmentDetailsScreen = lazy(() => import('./shipment-details-screen'));
 const UserProfileScreen = lazy(() => import('./user-profile-screen'));
+const ProductDetailsScreen = lazy(
+	() => import('../../inventory/sheets/product-details-screen')
+);
 
 // Register screens
 
