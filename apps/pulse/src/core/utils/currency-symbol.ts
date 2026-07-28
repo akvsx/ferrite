@@ -8,6 +8,7 @@ const supportedCurrencies = new Set(Intl.supportedValuesOf('currency'));
  * @returns The currency symbol.
  */
 export const currencySymbol = (
+	amount: number,
 	currency: string,
 	locale = 'en'
 ): string | undefined => {
@@ -20,7 +21,5 @@ export const currencySymbol = (
 	return new Intl.NumberFormat(locale, {
 		style: 'currency',
 		currency,
-	})
-		.formatToParts(0)
-		.find((part) => part.type === 'currency')?.value;
+	}).format(amount);
 };

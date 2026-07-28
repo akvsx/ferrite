@@ -39,7 +39,7 @@ const ProductDetails = ({
 				</div>
 
 				<div className="text-3xl font-light">
-					{currencySymbol(currencyCode)} {basePrice}
+					{currencySymbol(basePrice, currencyCode) ?? basePrice}
 				</div>
 			</div>
 

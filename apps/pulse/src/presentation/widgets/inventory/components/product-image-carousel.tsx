@@ -48,6 +48,15 @@ export default function ImageCarousel({ images }: ImageCarouselProps) {
 	}, [images]);
 
 	const [activeIndex, setActiveIndex] = useState(0);
+
+	useEffect(() => {
+		if (orderedImages.length === 0) {
+			setActiveIndex(0);
+		} else if (activeIndex >= orderedImages.length) {
+			setActiveIndex(orderedImages.length - 1);
+		}
+	}, [orderedImages.length, activeIndex]);
+
 	const containerRef = useRef<HTMLDivElement>(null);
 	const trackX = useMotionValue(0);
 
@@ -66,7 +75,8 @@ export default function ImageCarousel({ images }: ImageCarouselProps) {
 			const cw = el.offsetWidth;
 
 			// Item widths as pixels for the given active index
-			const itemW = (i: number) => (slotWidth(Math.abs(i - idx)) / 100) * cw;
+			const itemW = (i: number) =>
+				(slotWidth(Math.abs(i - idx)) / 100) * cw - GAP;
 
 			// Total track width
 			let totalW = 0;

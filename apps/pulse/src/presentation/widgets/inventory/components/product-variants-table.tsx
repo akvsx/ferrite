@@ -88,8 +88,9 @@ const ProductVariantsTable = ({
 								</TableCell>
 
 								<TableCell className="h-16 whitespace-nowrap px-4">
-									<span className="mr-1">{currencySymbol(currencyCode)}</span>
-									{skuData.price ?? basePrice}
+									{currencySymbol(skuData.price ?? basePrice, currencyCode) ??
+										skuData.price ??
+										basePrice}
 								</TableCell>
 							</TableRow>
 						))}
