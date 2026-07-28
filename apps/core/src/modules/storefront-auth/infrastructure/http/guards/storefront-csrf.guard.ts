@@ -46,7 +46,7 @@ export class StorefrontCsrfGuard implements CanActivate {
 		@Inject(OTEL_TRACER) private readonly tracer: ITracer,
 		config: ConfigService
 	) {
-		this.logger.setContext(StorefrontCsrfGuard.name);
+		this.logger.setContext(this.constructor.name);
 		const ferriteConfig = config.getOrThrow<FerriteConfig>('ferrite');
 		this.csrfCookieName = ferriteConfig.storefrontAuth.csrf.cookieName;
 	}
