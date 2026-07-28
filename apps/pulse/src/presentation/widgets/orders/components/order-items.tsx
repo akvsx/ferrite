@@ -1,4 +1,6 @@
 import Image from 'next/image';
+import { Button } from '@/presentation/primitives/button';
+import { sheetRouter } from '@/presentation/sheet-router/sheet-router.store';
 
 const order = {
 	id: 'ORD-1018',
@@ -97,7 +99,16 @@ const OrderItems = () => {
 
 			<div className="col gap-6">
 				{order.products.map((product) => (
-					<div key={product.id} className="flex gap-5">
+					<Button
+						unstyled
+						key={product.id}
+						className="flex gap-5 rounded-l-xl"
+						onClick={() =>
+							sheetRouter.push('product-details', {
+								productId: product.id,
+							})
+						}
+					>
 						<Image
 							src={product.image}
 							alt={product.name}
@@ -105,9 +116,11 @@ const OrderItems = () => {
 							height={80}
 							className="rounded-xl h-20 w-20 object-center object-cover aspect-square bg-muted-foreground"
 						/>
-						<div className="flex full justify-between">
+						<div className="flex full justify-between group text-start">
 							<div className="flex flex-col gap-2">
-								<p className="text-[1.13rem] w-64">{product.name}</p>
+								<p className="text-[1.13rem] w-64 group-hover:underline underline-offset-2">
+									{product.name}
+								</p>
 								<div className="flex gap-4">
 									{product.varient.map((variant) => (
 										<p
@@ -130,7 +143,7 @@ const OrderItems = () => {
 								</p>
 							</div>
 						</div>
-					</div>
+					</Button>
 				))}
 			</div>
 		</div>
