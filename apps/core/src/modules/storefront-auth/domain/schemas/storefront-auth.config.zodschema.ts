@@ -136,8 +136,8 @@ const cstfTokenSchema = z.object({
 });
 
 const securitySchema = z.object({
-	/** Path prefix for the storefront auth endpoints. Default: /store */
-	pathPrefix: z.string().default('/store'),
+	/** Path prefix for the storefront auth endpoints. Default: /stores/:storeId */
+	pathPrefix: z.string().default('/stores/:storeId'),
 	/** Maximum failed attempts before an account lockout is triggered. Default: 5 */
 	lockoutThreshold: z.coerce.number().int().positive().default(5),
 	/** Duration of the account lockout in milliseconds. Default: 15 minutes */
