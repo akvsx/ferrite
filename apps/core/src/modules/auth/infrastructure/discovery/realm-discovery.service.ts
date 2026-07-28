@@ -2,11 +2,12 @@ import {
 	type IRealmAuthAdapter,
 	REALM_ADAPTER_MAP,
 } from '@auth/domain/ports/realm-auth-adapter.port';
+import { AppLogger } from '@core/logger/logger.service';
 import {
 	AUTH_REALM_KEY,
 	type AuthRealm,
 } from '@modules/auth/infrastructure/http/decorators/use-realm.decorator';
-import { Inject, Injectable, Logger, type OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
 import { PATH_METADATA } from '@nestjs/common/constants';
 import { DiscoveryService, Reflector } from '@nestjs/core';
 
@@ -24,14 +25,15 @@ import { DiscoveryService, Reflector } from '@nestjs/core';
  */
 @Injectable()
 export class RealmDiscoveryService implements OnModuleInit {
-	private readonly logger = new Logger(RealmDiscoveryService.name);
-
 	constructor(
 		private readonly discovery: DiscoveryService,
 		private readonly reflector: Reflector,
 		@Inject(REALM_ADAPTER_MAP)
-		private readonly realmAdapters: Map<AuthRealm, IRealmAuthAdapter>
-	) {}
+		private readonly realmAdapters: Map<AuthRealm, IRealmAuthAdapter>,
+		private readonly logger: AppLogger
+	) {
+		this.logger.setContext(RealmDiscoveryService.name);
+	}
 
 	/**
 	 * Intentionally uses `process.nextTick(() => { throw err })` instead of a
@@ -41,7 +43,7 @@ export class RealmDiscoveryService implements OnModuleInit {
 	 * Scheduling the throw via `process.nextTick` promotes it to an uncaught
 	 * exception, which crashes the process and enforces fail-fast behaviour.
 	 */
-	onModuleInit() {
+	async onModuleInit() {
 		this.validateRealms().catch((err) => {
 			process.nextTick(() => {
 				throw err;

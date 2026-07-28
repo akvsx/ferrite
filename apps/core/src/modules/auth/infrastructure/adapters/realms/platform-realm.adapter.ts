@@ -8,6 +8,7 @@ import {
 	type Request,
 } from '@common/types/request';
 import { AppLogger } from '@core/logger/logger.service';
+import { type ITracer, OTEL_TRACER } from '@core/tracer';
 import type { IRealmAuthAdapter } from '@modules/auth/domain/ports/realm-auth-adapter.port';
 import { Inject, Injectable } from '@nestjs/common';
 
@@ -22,32 +23,39 @@ import { Inject, Injectable } from '@nestjs/common';
 export class PlatformRealmAdapter implements IRealmAuthAdapter {
 	constructor(
 		@Inject(JWT_TOKEN_UC) private readonly verifyToken: IJwtTokenUseCase,
+		@Inject(OTEL_TRACER) private readonly tracer: ITracer,
 		private readonly logger: AppLogger
 	) {
 		this.logger.setContext(PlatformRealmAdapter.name);
 	}
 
 	async authenticate(request: Request): Promise<Result<boolean, Error>> {
-		const [type, token] = request.headers?.authorization?.split(' ') ?? [];
+		return this.tracer.withSpan(
+			'PlatformRealmAdapter.authenticate',
+			async () => {
+				const [type, token] = request.headers?.authorization?.split(' ') ?? [];
 
-		if (type !== 'Bearer' || !token) {
-			this.logger.debug('No Bearer token provided');
-			return err(new Error('No token provided'));
-		}
+				if (type !== 'Bearer' || !token) {
+					this.logger.debug('No Bearer token provided');
+					return err(new Error('No token provided'));
+				}
 
-		const result = await this.verifyToken.execute(token);
+				const result = await this.verifyToken.execute(token);
 
-		if (result.isErr()) {
-			this.logger.error(
-				`Failed to verify platform token: ${result.error.message}`
-			);
-			return err(result.error);
-		}
+				if (result.isErr()) {
+					this.logger.error(
+						`Failed to verify platform token: ${result.error.message}`
+					);
+					return err(result.error);
+				}
 
-		const platformRequest = request as PlatformAuthenticatedRequest;
-		platformRequest.authUser = result.value;
-		platformRequest.__authRealm = 'platform';
+				const platformRequest = request as PlatformAuthenticatedRequest;
+				platformRequest.authUser = result.value;
+				platformRequest.__authRealm = 'platform';
 
-		return ok(true);
+				return ok(true);
+			},
+			{ realm: 'platform' }
+		);
 	}
 }

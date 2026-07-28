@@ -5,6 +5,7 @@ import {
 } from '@common/types/request';
 import type { FerriteConfig } from '@core/config/ferrite.schema';
 import { AppLogger } from '@core/logger/logger.service';
+import { type ITracer, OTEL_TRACER } from '@core/tracer';
 import { extractCookie } from '@libs/http/extractCookie';
 import type { IRealmAuthAdapter } from '@modules/auth/domain/ports/realm-auth-adapter.port';
 import {
@@ -32,6 +33,7 @@ export class StorefrontRealmAdapter implements IRealmAuthAdapter {
 	constructor(
 		@Inject(STOREFRONT_VALIDATE_SESSION_UC)
 		private readonly validateSession: IValidateSession,
+		@Inject(OTEL_TRACER) private readonly tracer: ITracer,
 		private readonly logger: AppLogger,
 		config: ConfigService
 	) {
@@ -54,22 +56,28 @@ export class StorefrontRealmAdapter implements IRealmAuthAdapter {
 			return err(new Error('Storefront routes require a :storeId param'));
 		}
 
-		const result = await this.validateSession.execute({
-			sessionId,
-			storeId,
-		});
+		return this.tracer.withSpan(
+			'StorefrontRealmAdapter.authenticate',
+			async () => {
+				const result = await this.validateSession.execute({
+					sessionId,
+					storeId,
+				});
 
-		if (result.isErr()) {
-			this.logger.error(
-				`Failed to validate storefront session: ${result.error.message}`
-			);
-			return err(result.error);
-		}
+				if (result.isErr()) {
+					this.logger.error(
+						`Failed to validate storefront session: ${result.error.message}`
+					);
+					return err(result.error);
+				}
 
-		const storefrontRequest = request as StorefrontAuthenticatedRequest;
-		storefrontRequest.storefrontUser = result.value;
-		storefrontRequest.__authRealm = 'storefront';
+				const storefrontRequest = request as StorefrontAuthenticatedRequest;
+				storefrontRequest.storefrontUser = result.value;
+				storefrontRequest.__authRealm = 'storefront';
 
-		return ok(true);
+				return ok(true);
+			},
+			{ realm: 'storefront', storeId }
+		);
 	}
 }
