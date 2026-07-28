@@ -159,7 +159,7 @@ function SheetContent({
 							/>
 						}
 						className={cn(
-							'fixed z-50 flex flex-col border border-border-gradient bg-surface/90 bg-clip-padding text-sm text-popover-foreground shadow-2xl shadow-accent/5 backdrop-blur-2xl will-change-transform',
+							'fixed z-50 flex flex-col border border-border-gradient bg-surface/75 bg-clip-padding text-sm text-popover-foreground shadow-2xl shadow-accent/5 backdrop-blur-3xl will-change-transform',
 							side === 'bottom' && 'inset-x-0 bottom-0 h-auto border-t',
 							side === 'left' &&
 								'inset-y-0 left-0 h-full w-3/4 border-r sm:max-w-xl',

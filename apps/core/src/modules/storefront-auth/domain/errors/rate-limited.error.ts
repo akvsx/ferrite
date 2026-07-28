@@ -1,11 +1,6 @@
-import { HttpException, HttpStatus } from '@nestjs/common';
-
-export class RateLimitedError extends HttpException {
+export class RateLimitedError extends Error {
 	readonly _tag = 'RateLimitedError';
 	constructor(public readonly retryAfter?: number) {
-		super(
-			'Too many attempts, please try again later',
-			HttpStatus.TOO_MANY_REQUESTS
-		);
+		super('Too many attempts, please try again later');
 	}
 }

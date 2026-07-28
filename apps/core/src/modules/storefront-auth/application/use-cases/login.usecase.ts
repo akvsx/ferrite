@@ -111,11 +111,13 @@ export class LoginUseCase implements IStorefrontLoginUser {
 				);
 
 				if (!passwordValid) {
-					// Increment failed login counter
-					await this.userRepo.incrementFailedLogins(user.id, input.storeId);
+					// Increment failed login counter and get post-increment count
+					const newFailedCount = await this.userRepo.incrementFailedLogins(
+						user.id,
+						input.storeId
+					);
 
 					// Check if lockout threshold is reached
-					const newFailedCount = user.failedLoginCount + 1; // adding current attempt
 					if (newFailedCount >= this.lockoutThreshold) {
 						const lockedUntil = new Date(Date.now() + this.lockoutDurationMs);
 						await this.userRepo.updateLockedUntil(
@@ -124,7 +126,7 @@ export class LoginUseCase implements IStorefrontLoginUser {
 							lockedUntil
 						);
 						this.logger.warn(
-							`Account locked: userId=${user.id}, until=${lockedUntil.toISOString()}`
+							`Account locked: userId=${user.id}, failedCount=${newFailedCount}, until=${lockedUntil.toISOString()}`
 						);
 					}
 
@@ -168,9 +170,7 @@ export class LoginUseCase implements IStorefrontLoginUser {
 						this.logger.error('Failed to update lastLoginAt', String(e))
 					);
 
-				this.logger.debug(
-					`Login successful: userId=${user.id}, sessionId=${session.id}`
-				);
+				this.logger.debug(`Login successful: userId=${user.id}`);
 
 				return ok({
 					session,

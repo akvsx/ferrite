@@ -71,9 +71,7 @@ export class RedisStorefrontSessionRepository
 			pipeline.pexpire(uKey, this.absoluteLifetimeMs);
 			await pipeline.exec();
 
-			this.logger.debug(
-				`Session created: sessionId=${id}, userId=${input.userId}`
-			);
+			this.logger.debug('Session created');
 
 			return storefrontSessionSchema.parse({
 				id,
@@ -129,9 +127,10 @@ export class RedisStorefrontSessionRepository
 			// Read userId + storeId before deleting so we can SREM from the set
 			const data = await this.redis.hmget(sessionKey(id), 'userId', 'storeId');
 
-			if (!data || Object.keys(data).length === 0) return false;
+			if (!data || data.length === 0) return false;
 
 			const [userId, storeId] = data;
+			if (!userId && !storeId) return false;
 
 			const pipeline = this.redis.pipeline();
 			pipeline.del(sessionKey(id));

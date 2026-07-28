@@ -1,7 +1,10 @@
+import { randomBytes } from 'node:crypto';
 import { PublicRoute } from '@common/decorators/public-route.decorator';
 import type { Request } from '@common/types/request';
 import type { FerriteConfig } from '@core/config/ferrite.schema';
 import { AuthStep } from '@ferrite/schema/storefront-auth/auth-step';
+import { extractCookie } from '@libs/http/extractCookie';
+import { UseRealm } from '@modules/auth';
 import { IncompleteConfigurationError } from '@modules/store';
 import { AccountLockedError } from '@modules/storefront-auth/domain/errors/account-locked.error';
 import { EmailAlreadyRegisteredError } from '@modules/storefront-auth/domain/errors/email-already-registered.error';
@@ -43,6 +46,7 @@ import {
 	ForbiddenException,
 	Get,
 	HttpCode,
+	HttpException,
 	HttpStatus,
 	Inject,
 	InternalServerErrorException,
@@ -57,6 +61,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { ApiTags } from '@nestjs/swagger';
 import type { FastifyReply } from 'fastify';
+import { SkipCsrf } from '../decorators/skip-csrf.decorator';
 import {
 	GetSessionDocs,
 	GetSessionsDocs,
@@ -74,10 +79,13 @@ import { VerifyEmailDTO } from '../dto/verify-email.dto';
 
 @ApiTags('Storefront Auth')
 @Controller('/auth')
-@PublicRoute()
+@UseRealm('storefront')
 export class StorefrontAuthController {
 	private readonly cookieName: string;
 	private readonly sessionMaxAgeS: number;
+	private readonly csrfCookieName: string;
+	private readonly csrfTokenMaxAgeS: number;
+	private readonly pathPrefix: string;
 
 	constructor(
 		@Inject(STOREFRONT_LOGIN_UC)
@@ -103,11 +111,18 @@ export class StorefrontAuthController {
 		this.sessionMaxAgeS = Math.floor(
 			ferriteConfig.storefrontAuth.session.absoluteLifetimeMs / 1000
 		);
+
+		this.csrfCookieName = ferriteConfig.storefrontAuth.csrf.cookieName;
+		this.csrfTokenMaxAgeS = ferriteConfig.storefrontAuth.csrf.maxAge;
+
+		this.pathPrefix = '/'; //ferriteConfig.storefrontAuth.security.pathPrefix;
 	}
 
 	@Post('login')
 	@HttpCode(HttpStatus.OK)
+	@PublicRoute()
 	@LoginUserDocs()
+	@SkipCsrf()
 	async login(
 		@Param('storeId', ParseUUIDPipe) storeId: string,
 		@Body() payload: LoginInputDTO,
@@ -118,7 +133,9 @@ export class StorefrontAuthController {
 			...payload,
 			storeId,
 			ipAddress: request.ip,
-			userAgent: request.headers['user-agent'] ?? '',
+			userAgent: Array.isArray(request.headers['user-agent'])
+				? (request.headers['user-agent'][0] ?? '')
+				: (request.headers['user-agent'] ?? ''),
 		});
 
 		if (result.isErr()) {
@@ -131,7 +148,7 @@ export class StorefrontAuthController {
 				throw new ForbiddenException(error.message);
 			}
 			if (error instanceof RateLimitedError) {
-				throw error; // Already an HttpException (429)
+				throw new HttpException(error.message, HttpStatus.TOO_MANY_REQUESTS);
 			}
 			if (error instanceof MfaRequiredError) {
 				return {
@@ -142,35 +159,15 @@ export class StorefrontAuthController {
 			throw new InternalServerErrorException('Login failed');
 		}
 
-		// Set HttpOnly session cookie
-		reply.setCookie(this.cookieName, result.value.session.id, {
-			httpOnly: true,
-			secure: true,
-			sameSite: 'lax',
-			path: '/',
-			maxAge: this.sessionMaxAgeS,
-		});
+		const csrfToken = randomBytes(32).toString('hex');
+
+		this.setSessionCookie(reply, result.value.session.id);
+		this.setCsrfCookie(reply, csrfToken);
 
 		return {
 			step: AuthStep.AUTHENTICATED,
 			user: result.value.user,
 		};
-	}
-
-	private extractSessionId(request: Request): string | undefined {
-		if (request.cookies?.[this.cookieName]) {
-			return request.cookies[this.cookieName];
-		}
-		const cookieHeader = request.headers.cookie;
-		if (cookieHeader) {
-			const match = cookieHeader.match(
-				new RegExp(`(?:^|; )${this.cookieName}=([^;]*)`)
-			);
-			if (match) {
-				return decodeURIComponent(match[1]);
-			}
-		}
-		return undefined;
 	}
 
 	@Get('session')
@@ -180,7 +177,7 @@ export class StorefrontAuthController {
 		@Param('storeId', ParseUUIDPipe) storeId: string,
 		@Req() request: Request
 	) {
-		const sessionId = this.extractSessionId(request);
+		const sessionId = extractCookie(request, this.cookieName);
 
 		if (!sessionId) {
 			throw new UnauthorizedException('Session missing');
@@ -208,7 +205,7 @@ export class StorefrontAuthController {
 		@Param('storeId', ParseUUIDPipe) storeId: string,
 		@Req() request: Request
 	) {
-		const sessionId = this.extractSessionId(request);
+		const sessionId = extractCookie(request, this.cookieName);
 
 		if (!sessionId) {
 			throw new UnauthorizedException('Session missing');
@@ -227,7 +224,9 @@ export class StorefrontAuthController {
 	}
 
 	@Post('register')
+	@PublicRoute()
 	@RegisterUserDocs()
+	@SkipCsrf()
 	async register(
 		@Param('storeId', ParseUUIDPipe) storeId: string,
 		@Body() payload: RegisterInputDTO
@@ -259,7 +258,9 @@ export class StorefrontAuthController {
 
 	@Post('verify-email')
 	@HttpCode(HttpStatus.OK)
+	@PublicRoute()
 	@VerifyEmailDocs()
+	@SkipCsrf()
 	async verifyEmail(
 		@Param('storeId', ParseUUIDPipe) storeId: string,
 		@Body() payload: VerifyEmailDTO
@@ -272,7 +273,10 @@ export class StorefrontAuthController {
 
 		if (result.isErr()) {
 			if (result.error instanceof RateLimitedError) {
-				throw result.error;
+				throw new HttpException(
+					result.error.message,
+					HttpStatus.TOO_MANY_REQUESTS
+				);
 			}
 			if (result.error instanceof IncompleteConfigurationError) {
 				throw new InternalServerErrorException({
@@ -289,7 +293,9 @@ export class StorefrontAuthController {
 
 	@Post('resend-verification-email')
 	@HttpCode(HttpStatus.OK)
+	@PublicRoute()
 	@ResendVerificationEmailDocs()
+	@SkipCsrf()
 	async resendVerificationEmail(
 		@Param('storeId', ParseUUIDPipe) storeId: string,
 		@Body() payload: ResendVerificationEmailDTO
@@ -302,7 +308,10 @@ export class StorefrontAuthController {
 
 		if (result.isErr()) {
 			if (result.error instanceof RateLimitedError) {
-				throw result.error;
+				throw new HttpException(
+					result.error.message,
+					HttpStatus.TOO_MANY_REQUESTS
+				);
 			}
 			if (result.error instanceof IncompleteConfigurationError) {
 				throw new InternalServerErrorException({
@@ -311,7 +320,9 @@ export class StorefrontAuthController {
 					isPublic: true,
 				});
 			}
-			throw new UnprocessableEntityException(result.error.message);
+			throw new InternalServerErrorException(
+				'Failed to send verification email'
+			);
 		}
 
 		return { step: AuthStep.EMAIL_VERIFICATION_REQUIRED };
@@ -320,23 +331,24 @@ export class StorefrontAuthController {
 	@Post('logout')
 	@HttpCode(HttpStatus.OK)
 	@LogoutDocs()
+	@SkipCsrf()
 	async logout(
 		@Req() request: Request,
 		@Res({ passthrough: true }) reply: FastifyReply
 	) {
-		const sessionId = this.extractSessionId(request);
+		const sessionId = extractCookie(request, this.cookieName);
 
 		if (sessionId) {
-			await this.logoutUseCase.execute({ sessionId });
+			const result = await this.logoutUseCase.execute({ sessionId });
+
+			if (result.isErr()) {
+				throw new UnprocessableEntityException('Logout failed');
+			}
 		}
 
-		// Clear the session cookie regardless
-		reply.clearCookie(this.cookieName, {
-			httpOnly: true,
-			secure: true,
-			sameSite: 'lax',
-			path: '/',
-		});
+		// Clear the session & CSRF cookies on this client
+		this.clearSessionCookie(reply);
+		this.clearCsrfCookie(reply);
 
 		return { step: 'logged_out' };
 	}
@@ -349,7 +361,7 @@ export class StorefrontAuthController {
 		@Req() request: Request,
 		@Res({ passthrough: true }) reply: FastifyReply
 	) {
-		const sessionId = this.extractSessionId(request);
+		const sessionId = extractCookie(request, this.cookieName);
 
 		if (!sessionId) {
 			throw new UnauthorizedException('Session missing');
@@ -364,14 +376,50 @@ export class StorefrontAuthController {
 			throw new UnauthorizedException(result.error.message);
 		}
 
-		// Clear the session cookie on this device as well
+		// Clear the session & CSRF cookies on this client
+		this.clearSessionCookie(reply);
+		this.clearCsrfCookie(reply);
+
+		return { step: 'logged_out_all' };
+	}
+
+	private setSessionCookie(reply: FastifyReply, sessionId: string) {
+		// Set HttpOnly session cookie
+		reply.setCookie(this.cookieName, sessionId, {
+			httpOnly: true,
+			secure: true,
+			sameSite: 'lax',
+			path: this.pathPrefix,
+			maxAge: this.sessionMaxAgeS,
+		});
+	}
+
+	private setCsrfCookie(reply: FastifyReply, csrfToken: string) {
+		// Set CSRF cookie
+		reply.setCookie(this.csrfCookieName, csrfToken, {
+			httpOnly: false,
+			secure: true,
+			sameSite: 'lax',
+			path: this.pathPrefix,
+			maxAge: this.csrfTokenMaxAgeS,
+		});
+	}
+
+	private clearSessionCookie(reply: FastifyReply) {
 		reply.clearCookie(this.cookieName, {
 			httpOnly: true,
 			secure: true,
 			sameSite: 'lax',
-			path: '/',
+			path: this.pathPrefix,
 		});
+	}
 
-		return { step: 'logged_out_all' };
+	private clearCsrfCookie(reply: FastifyReply) {
+		reply.clearCookie(this.csrfCookieName, {
+			httpOnly: false,
+			secure: true,
+			sameSite: 'lax',
+			path: this.pathPrefix,
+		});
 	}
 }

@@ -12,6 +12,8 @@
 	},
 	"iconLibrary": "lucide",
 	"rtl": false,
+	"menuColor": "default",
+	"menuAccent": "subtle",
 	"aliases": {
 		"components": "@/presentation/layout",
 		"utils": "@/core/utils/cn",
@@ -19,7 +21,7 @@
 		"lib": "@/core/utils",
 		"hooks": "@/application/queries"
 	},
-	"menuColor": "default",
-	"menuAccent": "subtle",
-	"registries": {}
+	"registries": {
+		"@reui": "https://reui.io/r/{style}/{name}.json"
+	}
 }

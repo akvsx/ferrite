@@ -170,12 +170,20 @@ describe('DrizzleStorefrontUserRepository', () => {
 
 	describe('incrementFailedLogins', () => {
 		it('should increment failed logins inside UOW', async () => {
-			await repository.incrementFailedLogins('usr_123', 'store_123');
+			mockQueryBuilder.returning.mockResolvedValue([{ failedLoginCount: 3 }]);
+			const result = await repository.incrementFailedLogins(
+				'usr_123',
+				'store_123'
+			);
 
+			expect(result).toBe(3);
 			expect(mockUow.execute).toHaveBeenCalled();
 			expect(mockQueryBuilder.update).toHaveBeenCalledWith(storefrontUsers);
 			expect(mockQueryBuilder.set).toHaveBeenCalled();
 			expect(mockQueryBuilder.where).toHaveBeenCalled();
+			expect(mockQueryBuilder.returning).toHaveBeenCalledWith({
+				failedLoginCount: storefrontUsers.failedLoginCount,
+			});
 		});
 	});
 

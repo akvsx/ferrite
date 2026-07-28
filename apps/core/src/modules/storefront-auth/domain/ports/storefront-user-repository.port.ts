@@ -25,7 +25,7 @@ export interface IStorefrontUserRepository {
 		id: string,
 		storeId: string,
 		tx?: ITransactionContext
-	): Promise<void>;
+	): Promise<number>;
 
 	resetFailedLogins(
 		id: string,

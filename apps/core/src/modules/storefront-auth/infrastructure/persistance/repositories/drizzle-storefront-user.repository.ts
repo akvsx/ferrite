@@ -143,7 +143,7 @@ export class DrizzleStorefrontUserRepository
 		id: string,
 		storeId: string,
 		tx?: ITransactionContext
-	): Promise<void> {
+	): Promise<number> {
 		return traceDbOp(
 			this.tracer,
 			'db.storefrontUsers.incrementFailedLogins',
@@ -163,9 +163,9 @@ export class DrizzleStorefrontUserRepository
 		ctx: ITransactionContext,
 		id: string,
 		storeId: string
-	): Promise<void> {
+	): Promise<number> {
 		const executor = DrizzleUnitOfWork.unwrap(ctx);
-		await traceDbOp(
+		const res = await traceDbOp(
 			this.tracer,
 			'db.storefrontUsers.updateFailedLogins',
 			{ 'db.table': 'storefront_users', 'db.operation': 'update' },
@@ -183,7 +183,9 @@ export class DrizzleStorefrontUserRepository
 							isNull(storefrontUsers.deletedAt)
 						)
 					)
+					.returning({ failedLoginCount: storefrontUsers.failedLoginCount })
 		);
+		return res?.[0]?.failedLoginCount ?? 0;
 	}
 
 	async resetFailedLogins(

@@ -1,7 +1,7 @@
 import type { Result } from '@common/interfaces/result.interface';
 import type { StorefrontUser } from '@ferrite/schema/storefront-auth/storefront-user.zodschema';
-import type { SessionExpiredError } from '../errors/session-expired.error';
-import type { SessionNotFoundError } from '../errors/session-not-found.error';
+import type { SessionExpiredError } from '@modules/storefront-auth/domain/errors/session-expired.error';
+import type { SessionNotFoundError } from '@modules/storefront-auth/domain/errors/session-not-found.error';
 
 export const STOREFRONT_VALIDATE_SESSION_UC = Symbol(
 	'STOREFRONT_VALIDATE_SESSION_UC'
