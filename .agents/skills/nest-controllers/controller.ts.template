@@ -1,0 +1,34 @@
+import type { AppLogger } from '@core/logger/logger.service';
+import { type ITracer, OTEL_TRACER } from '@core/tracer';
+import {
+  Body,
+  Controller,
+  Get,
+  Inject,
+  NotFoundException,
+  Param,
+  Post,
+} from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
+
+@ApiTags('My Module')
+@Controller('my-route')
+export class MyController {
+  constructor(
+    @Inject(OTEL_TRACER) private readonly tracer: ITracer,
+    private readonly logger: AppLogger,
+  ) {
+    this.logger.setContext(this.constructor.name);
+  }
+
+  @Get(':id')
+  async getResource(@Param('id') id: string) {
+    return this.tracer.withSpan(
+      'http.module-name.getResource',
+      async () => {
+        // Implement route logic here
+      },
+      { resourceId: id }
+    );
+  }
+}

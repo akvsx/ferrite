@@ -2,41 +2,16 @@
 - path: `apps/core`
 - description: This directory contains the core NestJS headless application.
 
-## Architecture
+## Architecture & Skills
 
-This project follows Hexagonal Architecture (Ports and Adapters). All structural rules,
-layer contracts, anti-patterns, and wiring conventions are defined in the
-`hexagonal-architecture` skill. Load and follow that skill for any task involving module
-creation, refactoring, code review, or architectural decisions.
+This project follows strict architectural conventions. Before modifying or generating code, you MUST load and read the appropriate skill file based on the component you are working on:
 
-Directory layout reference:
-
-```
-modules/<feature>/
-├── domain/
-│   ├── ports/
-│   ├── schemas/
-│   └── errors/
-├── application/
-│   └── use-case/
-└── infrastructure/
-    ├── persistance/
-    │   ├── repositories/
-    │   └── mappers/
-    ├── queue/
-    └── http/
-```
-
-## Key Patterns
-
-- **Result type** — Use-cases return `Result<T, E>` (`Ok`/`Err`), not exceptions. See `@common/interfaces/result.interface`.
-- **IUseCase interface** — `execute(input: TInput): Promise<Result<TOutput, TError>>`. See `@common/interfaces/use-case.interface`.
-- **DI tokens** — Ports use `Symbol()` tokens (e.g., `USER_REPOSITORY`, `CREATE_USER_UC`) bound in module `providers`.
-- **Tracing** — Inject `@Inject(OTEL_TRACER) tracer: ITracer` and wrap operations in `tracer.withSpan(name, fn, attributes)`.
-- **Logging** — Use `AppLogger` from `@core/logger/logger.service`. Call `setContext(this.constructor.name)` in constructors.
-- **Queue** — Extend `BaseConsumer<T>` / `BaseProducer<T>` from `@core/queue`. Register queues via `BullModule.registerQueue()`.
-- **Database** — Inject `@Inject(DB) db: PsqlDB` (Drizzle + postgres-js). `DB` is a global provider from `DatabaseModule`.
-- **Imports** — Use `import type` or inline `type` modifier for interfaces used in decorated constructor parameters (`isolatedModules` + `emitDecoratorMetadata`).
+- **General Architecture:** Load `hexagonal-architecture` for any task involving module creation, refactoring, layer boundaries, or discussing dependency rules.
+- **Zod Schemas:** Load `zod-schemas` when defining data models, DTO validations, or inferred types.
+- **Controllers:** Load `nest-controllers` when writing HTTP endpoints, dealing with dual auth (Storefront vs. Admin), or mapping domain errors to HTTP exceptions.
+- **Use Cases:** Load `nest-usecases` when orchestrating business logic, wrapping operations in traces, or configuring debug logging.
+- **Ports & Errors:** Load `nest-ports-and-errors` when defining interfaces for external dependencies (DB, services) or custom domain errors.
+- **Database Schemas:** Load `drizzle-schemas` when defining new database tables, modifying relations, or writing DB schema tests.
 
 ## Runtime & Tooling
 
@@ -51,14 +26,3 @@ modules/<feature>/
 | Auth       | Clerk (webhook verification via Svix)            |
 | Build      | `bun run build` (nest build + tsc-alias)         |
 | Monorepo   | Turborepo                                        |
-
-## Path Aliases
-
-Defined in `tsconfig.json`: `@core/*`, `@common/*`, `@modules/*`, `@auth/*`, `@users/*`, `@webhooks/*`.
-
-## Database
-
-- Schemas in `src/core/database/schema/` (Drizzle `pgTable`)
-- Enums in `schema/enum.ts`
-- Type exports: `User`, `NewUser`, etc. via `$inferSelect` / `$inferInsert`
-- Soft deletes via `deletedAt` timestamp (not hard deletes)

@@ -1,0 +1,30 @@
+import { err, ok, type Result } from '@common/interfaces/result.interface';
+import type { AppLogger } from '@core/logger/logger.service';
+import { type ITracer, OTEL_TRACER } from '@core/tracer';
+import { Inject, Injectable } from '@nestjs/common';
+// import type { IUseCaseType } from "@/modules/modulename/domain/ports/use-cases.port.ts"
+
+@Injectable()
+export class MyUseCase implements IUseCaseType {
+  constructor(
+    @Inject(OTEL_TRACER) private readonly tracer: ITracer,
+    private readonly logger: AppLogger
+  ) {
+    this.logger.setContext(this.constructor.name);
+  }
+
+  async execute(
+    input: MyUseCaseInput
+  ): Promise<Result<MyUseCaseOutput, MyUseCaseError>> {
+    return this.tracer.withSpan('use-case.module-name.operation', async () => {
+      this.logger.debug(
+        `Executing MyUseCase with input: ${JSON.stringify(input)}`
+      );
+
+      // Business logic here
+
+      this.logger.debug(`Successfully executed MyUseCase`);
+      return ok(undefined);
+    });
+  }
+}
