@@ -52,10 +52,9 @@ export const storefrontUsers = pgTable(
 		deletedAt: timestamp('deleted_at', { withTimezone: true }),
 	},
 	(t) => [
-		uniqueIndex('uq_storefront_users_store_email').on(
-			t.storeId,
-			sql`lower(${t.email})`
-		),
+		uniqueIndex('uq_storefront_users_store_email')
+			.on(t.storeId, sql`lower(${t.email})`)
+			.where(sql`${t.deletedAt} is null`),
 		index('idx_storefront_users_store_id').on(t.storeId),
 		index('idx_storefront_users_email').on(sql`lower(${t.email})`),
 		index('idx_storefront_users_created_at').on(t.createdAt),
