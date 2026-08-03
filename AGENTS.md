@@ -13,6 +13,10 @@ This project follows strict architectural conventions. Before modifying or gener
 - **Ports & Errors:** Load `nest-ports-and-errors` when defining interfaces for external dependencies (DB, services) or custom domain errors.
 - **Database Schemas:** Load `drizzle-schemas` when defining new database tables, modifying relations, or writing DB schema tests.
 
+## Module Context
+
+Before making changes to an existing feature module, ALWAYS check for and read the `README.md` file located at the root of the module (e.g., `apps/core/src/modules/<feature>/README.md`). This file contains comprehensive, module-specific information, boundaries, and rules.
+
 ## Runtime & Tooling
 
 | Tool       | Version / Notes                                  |
