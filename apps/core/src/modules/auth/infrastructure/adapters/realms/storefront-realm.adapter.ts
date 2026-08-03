@@ -9,6 +9,10 @@ import { type ITracer, OTEL_TRACER } from '@core/tracer';
 import { extractCookie } from '@libs/http/extractCookie';
 import type { IRealmAuthAdapter } from '@modules/auth/domain/ports/realm-auth-adapter.port';
 import {
+	type IValidateAccountStatus,
+	STOREFRONT_VALIDATE_ACCOUNT_STATUS_UC,
+} from '@modules/storefront-auth/domain/ports/validate-account-status-usecase.port';
+import {
 	type IValidateSession,
 	STOREFRONT_VALIDATE_SESSION_UC,
 } from '@modules/storefront-auth/domain/ports/validate-session-usecase.port';
@@ -33,6 +37,8 @@ export class StorefrontRealmAdapter implements IRealmAuthAdapter {
 	constructor(
 		@Inject(STOREFRONT_VALIDATE_SESSION_UC)
 		private readonly validateSession: IValidateSession,
+		@Inject(STOREFRONT_VALIDATE_ACCOUNT_STATUS_UC)
+		private readonly validateAccountStatus: IValidateAccountStatus,
 		@Inject(OTEL_TRACER) private readonly tracer: ITracer,
 		private readonly logger: AppLogger,
 		config: ConfigService
@@ -69,6 +75,17 @@ export class StorefrontRealmAdapter implements IRealmAuthAdapter {
 						`Failed to validate storefront session: ${result.error.message}`
 					);
 					return err(result.error);
+				}
+
+				const statusResult = await this.validateAccountStatus.execute({
+					user: result.value,
+				});
+
+				if (statusResult.isErr()) {
+					this.logger.error(
+						`Failed to validate storefront account status: ${statusResult.error.message}`
+					);
+					return err(statusResult.error);
 				}
 
 				const storefrontRequest = request as StorefrontAuthenticatedRequest;
