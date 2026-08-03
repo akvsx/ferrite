@@ -1,3 +1,4 @@
+export * from './common/pagination.zodschema';
 export * from './currencies/create-currency.zodschema';
 export * from './currencies/get-currencies.zodschema';
 export * from './currencies/update-currency.zodschema';
@@ -5,5 +6,7 @@ export * from './notification/email.zodschema';
 export * from './onboarding/onboarding-session.zodschema';
 export * from './onboarding/onboarding-store.zodschema';
 export * from './onboarding/onboarding-user.zodschema';
+export * from './storefront-users/storefront-user.zodschema';
+export * from './storefront-users/update-storefront-user.zodschema';
 export * from './users/list-users.zodschema';
 export * from './users/user-profile.zodschema';
