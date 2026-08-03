@@ -23,7 +23,7 @@
 		"@tanstack/react-table": "^8.21.3",
 		"@tanstack/zod-form-adapter": "^0.42.1",
 		"@types/lint-staged": "^14.0.0",
-		"@vercel/otel": "^2.1.2",
+		"@vercel/otel": "^2.1.3",
 		"@visx/curve": "^4.0.0",
 		"@visx/event": "^3.12.0",
 		"@visx/group": "^3.12.0",
