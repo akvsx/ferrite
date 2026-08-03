@@ -16,15 +16,17 @@ export class QueueRepository implements IQueueRepository {
 			const { jobKey, identifier, maxAttempts, ...jobPayloadData } =
 				queueParams;
 			const jobPayload = JSON.stringify(jobPayloadData);
+			const jobKeySql = jobKey
+				? sql`, job_key := ${jobKey}, job_key_mode := 'preserve_run_at'`
+				: sql``;
 
 			await drizzleTx.execute(sql`
     SELECT graphile_worker.add_job(
       identifier := ${identifier},
       payload := ${jobPayload}::json,
       queue_name := coalesce(${queueParams.queueName || null}::text, null),
-      max_attempts := ${maxAttempts},
-      job_key := ${jobKey},
-      job_key_mode := ${'preserve_run_at'}
+      max_attempts := ${maxAttempts}
+      ${jobKeySql}
     )
 `);
 		}
