@@ -55,7 +55,7 @@
 		"drizzle-orm": "^0.45.1",
 		"fastify": "^5.8.5",
 		"graphile-worker": "^0.16.6",
-		"mailgun.js": "^13.2.0",
+		"mailgun.js": "^13.3.0",
 		"nestjs-zod": "^5.1.1",
 		"pg": "^8.20.0",
 		"pg-logical-replication": "^2.4.0",

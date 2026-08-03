@@ -65,7 +65,7 @@
         "drizzle-orm": "^0.45.1",
         "fastify": "^5.8.5",
         "graphile-worker": "^0.16.6",
-        "mailgun.js": "^13.2.0",
+        "mailgun.js": "^13.3.0",
         "nestjs-zod": "^5.1.1",
         "pg": "^8.20.0",
         "pg-logical-replication": "^2.4.0",
@@ -3155,7 +3155,7 @@
 
     "magic-string": ["magic-string@0.30.17", "", { "dependencies": { "@jridgewell/sourcemap-codec": "^1.5.0" } }, "sha512-sNPKHvyjVf7gyjwS4xGTaW/mCnF8wnjtifKBEhxfZ7E/S8tQ0rssrwGNn6q8JH/ohItJfSQp9mBtQYuTlH5QnA=="],
 
-    "mailgun.js": ["mailgun.js@13.2.0", "", { "dependencies": { "axios": "^1.15.0", "base-64": "^1.0.0", "url-join": "^4.0.1" } }, "sha512-CJHDYagRuvN3IELgItQ9gToHDUh7KUtOsb9DtlW9bG2NhiXGsE63ehUNj0TTaU5TNlzp5A1jfBpnZPdWHEFxRA=="],
+    "mailgun.js": ["mailgun.js@13.3.0", "", { "dependencies": { "axios": "^1.15.0", "base-64": "^1.0.0", "url-join": "^4.0.1" } }, "sha512-8avnVhhaZJ17Pw91nPq+N4WuhCBBi9SJpsiAs5SV0CmLXZhz0UobTGP5p3bVTI+Zh1NZU6nXtL+N8KM/taBX4w=="],
 
     "make-asynchronous": ["make-asynchronous@1.1.0", "", { "dependencies": { "p-event": "^6.0.0", "type-fest": "^4.6.0", "web-worker": "^1.5.0" } }, "sha512-ayF7iT+44LXdxJLTrTd3TLQpFDDvPCBxXxbv+pMUSuHA5Q8zyAfwkRP6aHHwNVFBUFWtxAHqwNJxF8vMZLAbVg=="],
 
