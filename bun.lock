@@ -120,7 +120,7 @@
         "@tanstack/react-table": "^8.21.3",
         "@tanstack/zod-form-adapter": "^0.42.1",
         "@types/lint-staged": "^14.0.0",
-        "@vercel/otel": "^2.1.2",
+        "@vercel/otel": "^2.1.3",
         "@visx/curve": "^4.0.0",
         "@visx/event": "^3.12.0",
         "@visx/group": "^3.12.0",
@@ -1709,7 +1709,7 @@
 
     "@unrs/resolver-binding-win32-x64-msvc": ["@unrs/resolver-binding-win32-x64-msvc@1.12.2", "", { "os": "win32", "cpu": "x64" }, "sha512-nAB74NfSNKknqQ1RrYj6uz8FcXEomu/MATJZxh/x+BArzN2U3JbOYC0APYzUIGhVY3m5hRxA8VPNdPBoG8txlA=="],
 
-    "@vercel/otel": ["@vercel/otel@2.1.2", "", { "peerDependencies": { "@opentelemetry/api": ">=1.9.0 <2.0.0", "@opentelemetry/api-logs": ">=0.200.0 <0.300.0", "@opentelemetry/instrumentation": ">=0.200.0 <0.300.0", "@opentelemetry/resources": ">=2.0.0 <3.0.0", "@opentelemetry/sdk-logs": ">=0.200.0 <0.300.0", "@opentelemetry/sdk-metrics": ">=2.0.0 <3.0.0", "@opentelemetry/sdk-trace-base": ">=2.0.0 <3.0.0" } }, "sha512-PbGyq1lLwWbnftylNcQ6KFxc7DLc8LJdnaU3snM43bgXiWkWsHrgaU/LdUD8sHaSgG8UKuydX/aymNt3J+hzuA=="],
+    "@vercel/otel": ["@vercel/otel@2.1.3", "", { "peerDependencies": { "@opentelemetry/api": ">=1.9.0 <2.0.0", "@opentelemetry/api-logs": ">=0.200.0 <0.300.0", "@opentelemetry/instrumentation": ">=0.200.0 <0.300.0", "@opentelemetry/resources": ">=2.0.0 <3.0.0", "@opentelemetry/sdk-logs": ">=0.200.0 <0.300.0", "@opentelemetry/sdk-metrics": ">=2.0.0 <3.0.0", "@opentelemetry/sdk-trace-base": ">=2.0.0 <3.0.0" } }, "sha512-Ofvzs9qhftRD1YMLuPnhbXjQZG6IKrJ9AmEKmRHRGfoWlV89ed2gAOkvddkFiZDFZJm2rrFNdeZKRVxoCdnWiw=="],
 
     "@visx/bounds": ["@visx/bounds@4.0.0", "", { "peerDependencies": { "@types/react": "^18.0.0 || ^19.0.0", "@types/react-dom": "^18.0.0 || ^19.0.0", "react": "^18.0.0 || ^19.0.0", "react-dom": "^18.0.0 || ^19.0.0" }, "optionalPeers": ["@types/react", "@types/react-dom"] }, "sha512-3wAfN5fg2bxg/5f3MlKWzGDTKU2hdKkxq8bVWXpPZQV0UiVc0myuU1qa34c7tN3hg5SDe6MJi/bae2eTQDgEiQ=="],
 
