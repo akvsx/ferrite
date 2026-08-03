@@ -2,6 +2,7 @@ import type { TDatabase } from '@core/database/db.type';
 import { traceDbOp } from '@core/database/utils/trace-db-op.util';
 import { type ITracer, OTEL_TRACER } from '@core/tracer';
 import { Inject, Injectable } from '@nestjs/common';
+import { AppLogger } from '@core/logger/logger.service';
 
 @Injectable()
 export class DrizzleMyRepository {

@@ -1,5 +1,5 @@
 import { err, ok, type Result } from '@common/interfaces/result.interface';
-import type { AppLogger } from '@core/logger/logger.service';
+import { AppLogger } from '@core/logger/logger.service';
 import { type ITracer, OTEL_TRACER } from '@core/tracer';
 import { Inject, Injectable } from '@nestjs/common';
 // import type { IUseCaseType } from "@/modules/modulename/domain/ports/use-cases.port.ts"

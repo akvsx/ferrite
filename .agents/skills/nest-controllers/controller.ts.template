@@ -1,4 +1,4 @@
-import type { AppLogger } from '@core/logger/logger.service';
+import { AppLogger } from '@core/logger/logger.service';
 import { type ITracer, OTEL_TRACER } from '@core/tracer';
 import {
   Body,
