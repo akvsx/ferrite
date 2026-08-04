@@ -11,6 +11,7 @@ import {
 
 export interface DeleteStorefrontUserInput {
 	userId: string;
+	storeId: string;
 }
 
 @Injectable()
@@ -34,14 +35,17 @@ export class DeleteStorefrontUserUseCase
 			'use-case.storefront-users.delete',
 			async () => {
 				this.logger.debug(`Deleting storefront user: ${input.userId}`);
-				const user = await this.userRepository.findById(input.userId);
+				const user = await this.userRepository.findById(
+					input.userId,
+					input.storeId
+				);
 				if (!user) {
 					this.logger.debug(
 						`Storefront user to delete not found: ${input.userId}`
 					);
 					return err(new StorefrontUserNotFoundError(input.userId));
 				}
-				await this.userRepository.delete(input.userId);
+				await this.userRepository.delete(input.userId, input.storeId);
 				this.logger.debug(
 					`Successfully soft deleted storefront user: ${input.userId}`
 				);

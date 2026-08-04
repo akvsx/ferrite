@@ -12,6 +12,7 @@ import {
 
 export interface AdminSetBanStatusStorefrontUserInput {
 	userId: string;
+	storeId: string;
 	isBanned: boolean;
 }
 
@@ -44,6 +45,7 @@ export class AdminSetBanStatusStorefrontUserUseCase
 				);
 				const user = await this.userRepository.setBanStatus(
 					input.userId,
+					input.storeId,
 					input.isBanned
 				);
 				if (!user) {

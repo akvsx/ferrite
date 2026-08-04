@@ -12,6 +12,7 @@ import {
 
 export interface GetStorefrontUserInput {
 	userId: string;
+	storeId: string;
 }
 
 @Injectable()
@@ -37,7 +38,10 @@ export class GetStorefrontUserUseCase
 	): Promise<Result<StorefrontUser, StorefrontUserNotFoundError>> {
 		return this.tracer.withSpan('use-case.storefront-users.get', async () => {
 			this.logger.debug(`Getting storefront user: ${input.userId}`);
-			const user = await this.userRepository.findById(input.userId);
+			const user = await this.userRepository.findById(
+				input.userId,
+				input.storeId
+			);
 			if (!user) {
 				this.logger.debug(`Storefront user not found: ${input.userId}`);
 				return err(new StorefrontUserNotFoundError(input.userId));

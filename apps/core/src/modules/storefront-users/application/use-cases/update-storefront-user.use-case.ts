@@ -15,6 +15,7 @@ import {
 
 export interface UpdateStorefrontUserInput {
 	userId: string;
+	storeId: string;
 	payload: UpdateStorefrontUser;
 }
 
@@ -47,11 +48,12 @@ export class UpdateStorefrontUserUseCase
 				);
 				const user = await this.userRepository.update(
 					input.userId,
+					input.storeId,
 					input.payload
 				);
 				if (!user) {
 					this.logger.debug(
-						`Storefront user to update not found: ${input.userId}`
+						`Updating storefront user: ${input.userId.substring(0, 6)}... with fields: ${Object.keys(input.payload).join(', ')}`
 					);
 					return err(new StorefrontUserNotFoundError(input.userId));
 				}

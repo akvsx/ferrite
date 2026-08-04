@@ -7,7 +7,7 @@ import {
 export const STOREFRONT_USER_REPOSITORY = Symbol('IStorefrontUserRepository');
 
 export interface IStorefrontUserRepository {
-	findById(id: string): Promise<StorefrontUser | null>;
+	findById(id: string, storeId: string): Promise<StorefrontUser | null>;
 	findByStoreId(
 		storeId: string,
 		cursor?: string,
@@ -15,8 +15,13 @@ export interface IStorefrontUserRepository {
 	): Promise<PaginatedResponse<StorefrontUser>>;
 	update(
 		id: string,
+		storeId: string,
 		payload: UpdateStorefrontUser
 	): Promise<StorefrontUser | null>;
-	delete(id: string): Promise<void>;
-	setBanStatus(id: string, isBanned: boolean): Promise<StorefrontUser | null>;
+	delete(id: string, storeId: string): Promise<boolean>;
+	setBanStatus(
+		id: string,
+		storeId: string,
+		isBanned: boolean
+	): Promise<StorefrontUser | null>;
 }
