@@ -27,21 +27,3 @@ This skill defines conventions for the innermost Domain layer components.
   }
   ```
 - **Error Handling Rule:** Always throw or return concrete module-specific errors rather than generic JS `Error` objects, so failures can be easily traced back to the module of origin.
-
-## 3. Database Tracing
-- **Tracing Function:** When implementing database operations in a repository, you MUST use the `traceDbOp` utility rather than `tracer.withSpan`.
-- **Example:**
-  ```typescript
-  return traceDbOp(
-    this.tracer,
-    'db.tableName.operationName',
-    { 'db.table': 'table_name', 'db.operation': 'select' },
-    async () => { /* db operation */ }
-  );
-  ```
-- **SECURITY/PII Rule:** NEVER leak sensitive information that can be used to identify individuals (PII) such as emails, phone numbers, raw passwords, or full names in trace parameters or logs. If you must log a user context, use their opaque ID.
-
-## 4. Repository Boilerplate Template
-- **INSTRUCTION:** When creating a new repository infrastructure class, DO NOT write it from scratch. Instead, copy the template provided in `.agents/skills/nest-ports-and-errors/repository.template.ts`.
-- **Example Command:** `cp .agents/skills/nest-ports-and-errors/repository.template.ts apps/core/src/modules/my-module/infrastructure/persistence/repositories/my-repository.ts`
-- Use the `@/` path alias or defined `tsconfig.json` aliases to import common modules.
