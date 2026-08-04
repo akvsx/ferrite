@@ -1,0 +1,19 @@
+import { DB } from '@core/database/db.provider';
+import type { TDatabase } from '@core/database/db.type';
+import { traceDbOp } from '@core/database/utils/trace-db-op.util';
+import { type ITracer, OTEL_TRACER } from '@core/tracer';
+import { Inject, Injectable } from '@nestjs/common';
+import { type IMyRepository } from '../../../domain/ports/my-repository.port'; // TODO: update path
+//import { MyEntityMapper } from '../mappers/my-entity.mapper'; // TODO: update path
+
+@Injectable()
+export class DrizzleMyRepository implements IMyRepository {
+	constructor(
+		@Inject(DB) private readonly db: TDatabase,
+		@Inject(OTEL_TRACER) private readonly tracer: ITracer
+	) {}
+
+	// Private helpers
+
+	// Public methods
+}

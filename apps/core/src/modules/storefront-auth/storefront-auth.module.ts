@@ -8,6 +8,7 @@ import { LogoutAllUseCase } from './application/use-cases/logout-all.usecase';
 import { RegisterUserUseCase } from './application/use-cases/register-user.usecase';
 import { ResendVerificationEmailUseCase } from './application/use-cases/resend-verification-email.usecase';
 import { SendVerificationEmailUseCase } from './application/use-cases/send-verification-email.usecase';
+import { ValidateAccountStatusUseCase } from './application/use-cases/validate-account-status.usecase';
 import { ValidateSessionUseCase } from './application/use-cases/validate-session.usecase';
 import { VerifyEmailUseCase } from './application/use-cases/verify-email.usecase';
 import { STOREFRONT_EMAIL_VERIFICATION_REPOSITORY } from './domain/ports/email-verification-repository.port';
@@ -26,6 +27,7 @@ import { RATE_LIMITER } from './domain/ports/rate-limiter.port';
 import { STOREFRONT_REGISTER_UC } from './domain/ports/register-usecase.port';
 import { STOREFRONT_SESSION_REPOSITORY } from './domain/ports/storefront-session-repository.port';
 import { STOREFRONT_USER_REPOSITORY } from './domain/ports/storefront-user-repository.port';
+import { STOREFRONT_VALIDATE_ACCOUNT_STATUS_UC } from './domain/ports/validate-account-status-usecase.port';
 import { STOREFRONT_VALIDATE_SESSION_UC } from './domain/ports/validate-session-usecase.port';
 import {
 	Argon2OptionsProvider,
@@ -110,7 +112,15 @@ import { StorefrontRedisProvider } from './infrastructure/redis/redis.provider';
 			provide: STOREFRONT_VALIDATE_SESSION_UC,
 			useClass: ValidateSessionUseCase,
 		},
+		{
+			provide: STOREFRONT_VALIDATE_ACCOUNT_STATUS_UC,
+			useClass: ValidateAccountStatusUseCase,
+		},
 	],
-	exports: [STOREFRONT_VALIDATE_SESSION_UC, StorefrontCsrfGuard],
+	exports: [
+		STOREFRONT_VALIDATE_SESSION_UC,
+		STOREFRONT_VALIDATE_ACCOUNT_STATUS_UC,
+		StorefrontCsrfGuard,
+	],
 })
 export class StorefrontAuthModule {}

@@ -94,6 +94,15 @@ export class AuthGuard implements CanActivate {
 
 			if (result.isErr()) {
 				this.logger.error(`Auth failed [${realm}]: ${result.error.message}`);
+
+				const errObj = result.error as any;
+				if (
+					errObj._tag === 'AccountBannedError' ||
+					errObj._tag === 'EmailNotVerifiedError'
+				) {
+					throw new UnauthorizedException(errObj.message);
+				}
+
 				throw new UnauthorizedException('Authentication failed');
 			}
 
