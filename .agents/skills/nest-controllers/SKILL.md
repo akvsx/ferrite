@@ -28,6 +28,12 @@ The application utilizes a dual authentication architecture for external users a
 - **Never** place business calculations or validations directly inside the controller.
 
 ## 4. Boilerplate Template
-- **INSTRUCTION:** When creating a new controller, DO NOT write it from scratch. Instead, copy the template provided in `.agents/skills/nest-controllers/controller.template.ts`.
-- **Example Command:** `cp .agents/skills/nest-controllers/controller.template.ts apps/core/src/modules/my-module/infrastructure/http/controllers/my-controller.ts`
+- **INSTRUCTION:** When creating a new controller, DO NOT write it from scratch. Instead, copy the template provided in `.agents/skills/nest-controllers/controller.ts.template`.
+- **Example Command:** `cp .agents/skills/nest-controllers/controller.ts.template apps/core/src/modules/my-module/infrastructure/http/controllers/my-controller.ts`
 - Use the `@/` path alias to import common modules when appropriate, or the defined `tsconfig.json` aliases.
+
+## 5. Swagger Documentation
+- **Separate Files:** Swagger documentation decorators (`@ApiOperation`, `@ApiResponse`, etc.) MUST be defined in a separate file, typically at `infrastructure/http/docs/<module>.docs.ts`.
+- **Storefront & Admin Controllers:** If the module is storefront facing, there might be two controllers (e.g., Storefront and Admin). Document them separately in separate doc files.
+- **Applying Decorators:** Group the decorators for each endpoint using `applyDecorators(...)` in the docs file, export the function, and then use it as a single decorator on the controller method (e.g., `@LoginDocs()`).
+- **Authentication:** Ensure you use bearer token authentication (e.g., `@ApiBearerAuth()`) in the Swagger docs for protected routes.

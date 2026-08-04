@@ -26,6 +26,6 @@ This skill guides the implementation of use cases within the Hexagonal Architect
   - **SECURITY/PII Rule:** NEVER leak sensitive information that can be used to identify individuals (PII) such as emails, phone numbers, raw passwords, or full names in logs or trace spans. If you must log a user context, use their opaque ID.
 
 ## 3. Boilerplate Template
-- **INSTRUCTION:** When creating a new use case, DO NOT write it from scratch. Instead, copy the template provided in `.agents/skills/nest-usecases/usecase.template.ts`.
-- **Example Command:** `cp .agents/skills/nest-usecases/usecase.template.ts apps/core/src/modules/my-module/application/use-cases/my-usecase.ts`
+- **INSTRUCTION:** When creating a new use case, DO NOT write it from scratch. Instead, copy the template provided in `.agents/skills/nest-usecases/usecase.ts.template`.
+- **Example Command:** `cp .agents/skills/nest-usecases/usecase.ts.template apps/core/src/modules/my-module/application/use-cases/my-usecase.ts`
 - Use the `@/` path alias or defined `tsconfig.json` aliases to import common modules.

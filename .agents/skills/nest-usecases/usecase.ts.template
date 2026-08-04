@@ -17,9 +17,7 @@ export class MyUseCase implements IUseCaseType {
     input: MyUseCaseInput
   ): Promise<Result<MyUseCaseOutput, MyUseCaseError>> {
     return this.tracer.withSpan('use-case.module-name.operation', async () => {
-      this.logger.debug(
-        `Executing MyUseCase with input: ${JSON.stringify(input)}`
-      );
+      this.logger.debug('Executing MyUseCase');
 
       // Business logic here
 
