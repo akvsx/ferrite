@@ -11,6 +11,7 @@ This project follows strict architectural conventions. Before modifying or gener
 - **Controllers:** Load `nest-controllers` when writing HTTP endpoints, dealing with dual auth (Storefront vs. Admin), or mapping domain errors to HTTP exceptions.
 - **Use Cases:** Load `nest-usecases` when orchestrating business logic, wrapping operations in traces, or configuring debug logging.
 - **Ports & Errors:** Load `nest-ports-and-errors` when defining interfaces for external dependencies (DB, services) or custom domain errors.
+- **Repositories:** Load `nest-repository` when defining repositories for external dependencies (DB, services).
 - **Database Schemas:** Load `drizzle-schemas` when defining new database tables, modifying relations, or writing DB schema tests.
 
 ## Module Context
