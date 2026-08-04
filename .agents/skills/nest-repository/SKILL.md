@@ -9,7 +9,7 @@ description: >
 
 # Repository Infrastructure (Drizzle ORM)
 
-Path: `src/modules/<feature>/infrastructure/persistence/repositories/`
+Path: `apps/core/src/modules/<feature>/infrastructure/persistence/repositories/`
 
 ## Rules
 
@@ -53,7 +53,7 @@ Port sigs: `findByIdAndStore(id, storeId)`, `update(id, storeId, payload)`, `del
 
 ## New Repository
 
-```
+```shell
 cp .agents/skills/nest-repository/repository.ts.template \
    apps/core/src/modules/<feature>/infrastructure/persistence/repositories/drizzle-<feature>.repository.ts
 ```

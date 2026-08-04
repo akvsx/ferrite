@@ -12,7 +12,7 @@ description: >
 This skill outlines the architectural conventions for building HTTP controllers in the Ferrite API.
 
 ## 1. Dual Auth Architecture & Admin Paths
-The application utilizes a dual authentication architecture for external users and internal administrators for storefront facing routes.
+The application utilizes a dual authentication architecture for external users and internal administrators for storefront-facing routes.
 - **Storefront Users:** Standard endpoints (e.g., `/stores/:storeId/users/me`) are for end-users operating on their own data or public data.
 - **Admin Users:** Administrative endpoints MUST be nested under an `/admin` path (or clearly separated in a `.admin.controller.ts` file) and employ different auth guards. Admins can operate on other users' data (e.g., by ID).
 - Keep the controllers separate. Do not mix storefront and admin routes in the same controller class.
@@ -34,6 +34,6 @@ The application utilizes a dual authentication architecture for external users a
 
 ## 5. Swagger Documentation
 - **Separate Files:** Swagger documentation decorators (`@ApiOperation`, `@ApiResponse`, etc.) MUST be defined in a separate file, typically at `infrastructure/http/docs/<module>.docs.ts`.
-- **Storefront & Admin Controllers:** If the module is storefront facing, there might be two controllers (e.g., Storefront and Admin). Document them separately in separate doc files.
+- **Storefront & Admin Controllers:** If the module is storefront-facing, there might be two controllers (e.g., Storefront and Admin). Document them separately in separate doc files.
 - **Applying Decorators:** Group the decorators for each endpoint using `applyDecorators(...)` in the docs file, export the function, and then use it as a single decorator on the controller method (e.g., `@LoginDocs()`).
 - **Authentication:** Ensure you use bearer token authentication (e.g., `@ApiBearerAuth()`) in the Swagger docs for protected routes.

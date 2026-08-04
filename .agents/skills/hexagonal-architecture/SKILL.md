@@ -23,8 +23,8 @@ description: >
 
 ## Directory Structure
 
-```
-src/modules/<feature>/
+```text
+apps/core/src/modules/<feature>/
 ├── domain/
 │   ├── schemas/       # Zod schemas (.zodschema.ts)
 │   ├── ports/         # Interfaces prefixed I + DI token (co-located)
