@@ -22,6 +22,14 @@ import { DeleteStorefrontUserUseCase } from '../../../application/use-cases/dele
 import { GetStorefrontUserUseCase } from '../../../application/use-cases/get-storefront-user.use-case';
 import { GetStorefrontUsersUseCase } from '../../../application/use-cases/get-storefront-users.use-case';
 import { UpdateStorefrontUserUseCase } from '../../../application/use-cases/update-storefront-user.use-case';
+import {
+	AdminBanUserDocs,
+	AdminDeleteUserDocs,
+	AdminGetUserDocs,
+	AdminGetUsersDocs,
+	AdminUnbanUserDocs,
+	AdminUpdateUserDocs,
+} from '../docs/storefront-users.admin.docs';
 import { GetStorefrontUsersDto } from '../dto/get-storefront-users.dto';
 import { UpdateStorefrontUserDto } from '../dto/update-storefront-user.dto';
 
@@ -42,6 +50,7 @@ export class StorefrontUserAdminController {
 	}
 
 	@Get()
+	@AdminGetUsersDocs()
 	async getUsers(
 		@Req() req: PlatformAuthenticatedRequest,
 		@Query() query: GetStorefrontUsersDto
@@ -62,6 +71,7 @@ export class StorefrontUserAdminController {
 	}
 
 	@Get(':id')
+	@AdminGetUserDocs()
 	async getUser(
 		@Req() req: PlatformAuthenticatedRequest,
 		@Param('id') id: string
@@ -69,7 +79,10 @@ export class StorefrontUserAdminController {
 		return this.tracer.withSpan(
 			'http.storefront-users-admin.getUser',
 			async () => {
-				const result = await this.getUserUseCase.execute({ userId: id });
+				const result = await this.getUserUseCase.execute({
+					userId: id,
+					storeId: req.params.storeId ?? '',
+				});
 				if (!result.ok) throw new NotFoundException(result.error.message);
 				return result.value;
 			},
@@ -78,6 +91,7 @@ export class StorefrontUserAdminController {
 	}
 
 	@Patch(':id')
+	@AdminUpdateUserDocs()
 	async updateUser(
 		@Req() req: PlatformAuthenticatedRequest,
 		@Param('id') id: string,
@@ -88,6 +102,7 @@ export class StorefrontUserAdminController {
 			async () => {
 				const result = await this.updateUserUseCase.execute({
 					userId: id,
+					storeId: req.params.storeId ?? '',
 					payload,
 				});
 				if (!result.ok) throw new NotFoundException(result.error.message);
@@ -98,6 +113,7 @@ export class StorefrontUserAdminController {
 	}
 
 	@Delete(':id')
+	@AdminDeleteUserDocs()
 	async deleteUser(
 		@Req() req: PlatformAuthenticatedRequest,
 		@Param('id') id: string
@@ -105,7 +121,10 @@ export class StorefrontUserAdminController {
 		return this.tracer.withSpan(
 			'http.storefront-users-admin.deleteUser',
 			async () => {
-				const result = await this.deleteUserUseCase.execute({ userId: id });
+				const result = await this.deleteUserUseCase.execute({
+					userId: id,
+					storeId: req.params.storeId ?? '',
+				});
 				if (!result.ok) throw new NotFoundException(result.error.message);
 				return { success: true };
 			},
@@ -114,6 +133,7 @@ export class StorefrontUserAdminController {
 	}
 
 	@Post(':id/ban')
+	@AdminBanUserDocs()
 	async banUser(
 		@Req() req: PlatformAuthenticatedRequest,
 		@Param('id') id: string
@@ -123,6 +143,7 @@ export class StorefrontUserAdminController {
 			async () => {
 				const result = await this.setBanStatusUseCase.execute({
 					userId: id,
+					storeId: req.params.storeId ?? '',
 					isBanned: true,
 				});
 				if (!result.ok) throw new NotFoundException(result.error.message);
@@ -133,6 +154,7 @@ export class StorefrontUserAdminController {
 	}
 
 	@Post(':id/unban')
+	@AdminUnbanUserDocs()
 	async unbanUser(
 		@Req() req: PlatformAuthenticatedRequest,
 		@Param('id') id: string
@@ -142,6 +164,7 @@ export class StorefrontUserAdminController {
 			async () => {
 				const result = await this.setBanStatusUseCase.execute({
 					userId: id,
+					storeId: req.params.storeId ?? '',
 					isBanned: false,
 				});
 				if (!result.ok) throw new NotFoundException(result.error.message);

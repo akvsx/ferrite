@@ -16,6 +16,11 @@ import { ApiTags } from '@nestjs/swagger';
 import { DeleteStorefrontUserUseCase } from '../../../application/use-cases/delete-storefront-user.use-case';
 import { GetStorefrontUserUseCase } from '../../../application/use-cases/get-storefront-user.use-case';
 import { UpdateStorefrontUserUseCase } from '../../../application/use-cases/update-storefront-user.use-case';
+import {
+	DeleteMeDocs,
+	GetMeDocs,
+	UpdateMeDocs,
+} from '../docs/storefront-users.docs';
 import { UpdateStorefrontUserDto } from '../dto/update-storefront-user.dto';
 
 @ApiTags('Storefront Users')
@@ -33,12 +38,14 @@ export class StorefrontUserController {
 	}
 
 	@Get('me')
+	@GetMeDocs()
 	async getMe(@Req() req: StorefrontAuthenticatedRequest) {
 		return this.tracer.withSpan(
 			'http.storefront-users.getMe',
 			async () => {
 				const result = await this.getUserUseCase.execute({
 					userId: req.storefrontUser.id,
+					storeId: req.params.storeId ?? '',
 				});
 				if (!result.ok) throw new NotFoundException(result.error.message);
 				return result.value;
@@ -48,6 +55,7 @@ export class StorefrontUserController {
 	}
 
 	@Patch('me')
+	@UpdateMeDocs()
 	async updateMe(
 		@Req() req: StorefrontAuthenticatedRequest,
 		@Body() payload: UpdateStorefrontUserDto
@@ -57,6 +65,7 @@ export class StorefrontUserController {
 			async () => {
 				const result = await this.updateUserUseCase.execute({
 					userId: req.storefrontUser.id,
+					storeId: req.params.storeId ?? '',
 					payload,
 				});
 				if (!result.ok) throw new NotFoundException(result.error.message);
@@ -67,12 +76,14 @@ export class StorefrontUserController {
 	}
 
 	@Delete('me')
+	@DeleteMeDocs()
 	async deleteMe(@Req() req: StorefrontAuthenticatedRequest) {
 		return this.tracer.withSpan(
 			'http.storefront-users.deleteMe',
 			async () => {
 				const result = await this.deleteUserUseCase.execute({
 					userId: req.storefrontUser.id,
+					storeId: req.params.storeId ?? '',
 				});
 				if (!result.ok) throw new NotFoundException(result.error.message);
 				return { success: true };
