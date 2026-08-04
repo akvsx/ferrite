@@ -23,7 +23,7 @@ export class DrizzleStorefrontUserRepository
 		@Inject(OTEL_TRACER) private readonly tracer: ITracer
 	) {}
 
-	async findById(id: string): Promise<StorefrontUser | null> {
+	async findById(id: string, storeId: string): Promise<StorefrontUser | null> {
 		return traceDbOp(
 			this.tracer,
 			'db.storefront_users.findById',
@@ -32,7 +32,13 @@ export class DrizzleStorefrontUserRepository
 				const [row] = await this.db
 					.select()
 					.from(storefrontUsers)
-					.where(eq(storefrontUsers.id, id))
+					.where(
+						and(
+							eq(storefrontUsers.id, id),
+							eq(storefrontUsers.storeId, storeId),
+							isNull(storefrontUsers.deletedAt)
+						)
+					)
 					.limit(1);
 
 				if (!row) return null;
@@ -86,6 +92,7 @@ export class DrizzleStorefrontUserRepository
 
 	async update(
 		id: string,
+		storeId: string,
 		payload: UpdateStorefrontUser
 	): Promise<StorefrontUser | null> {
 		return traceDbOp(
@@ -99,7 +106,13 @@ export class DrizzleStorefrontUserRepository
 						...payload,
 						updatedAt: new Date(),
 					})
-					.where(eq(storefrontUsers.id, id))
+					.where(
+						and(
+							eq(storefrontUsers.id, id),
+							eq(storefrontUsers.storeId, storeId),
+							isNull(storefrontUsers.deletedAt)
+						)
+					)
 					.returning();
 
 				if (!updated) return null;
@@ -108,22 +121,31 @@ export class DrizzleStorefrontUserRepository
 		);
 	}
 
-	async delete(id: string): Promise<void> {
+	async delete(id: string, storeId: string): Promise<boolean> {
 		return traceDbOp(
 			this.tracer,
 			'db.storefront_users.delete',
 			{ 'db.table': 'storefront_users', 'db.operation': 'delete' },
 			async () => {
-				await this.db
+				const [deleted] = await this.db
 					.update(storefrontUsers)
 					.set({ deletedAt: new Date() })
-					.where(eq(storefrontUsers.id, id));
+					.where(
+						and(
+							eq(storefrontUsers.id, id),
+							eq(storefrontUsers.storeId, storeId)
+						)
+					)
+					.returning({ id: storefrontUsers.id });
+
+				return !!deleted;
 			}
 		);
 	}
 
 	async setBanStatus(
 		id: string,
+		storeId: string,
 		isBanned: boolean
 	): Promise<StorefrontUser | null> {
 		return traceDbOp(
@@ -137,7 +159,13 @@ export class DrizzleStorefrontUserRepository
 						bannedAt: isBanned ? new Date() : null,
 						updatedAt: new Date(),
 					})
-					.where(eq(storefrontUsers.id, id))
+					.where(
+						and(
+							eq(storefrontUsers.id, id),
+							eq(storefrontUsers.storeId, storeId),
+							isNull(storefrontUsers.deletedAt)
+						)
+					)
 					.returning();
 
 				if (!updated) return null;
