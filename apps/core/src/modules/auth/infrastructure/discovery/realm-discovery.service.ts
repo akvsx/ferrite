@@ -18,6 +18,7 @@ import { DiscoveryService, Reflector } from '@nestjs/core';
  *   1. `@UseRealm('storefront')` must NOT be on an `/admin` path.
  *   2. `@UseRealm('platform')` on a `stores/` path MUST include `/admin`.
  *   3. Every `@UseRealm(realm)` value must have a registered adapter in the `REALM_ADAPTER_MAP`.
+ *   4. Controllers with an `/admin` path MUST be decorated with `@UseRealm('platform')`.
  *
  * Follows the same fail-fast pattern as `GraphileDiscoveryService`:
  * errors are collected first, then thrown via `process.nextTick` to crash the
@@ -67,22 +68,22 @@ export class RealmDiscoveryService implements OnModuleInit {
 				AUTH_REALM_KEY,
 				controllerClass
 			);
+
+			// Rule 1: Admin paths must be decorated with the platform realm
+			if (this.isAdminPath(path) && realm !== 'platform') {
+				errors.push(
+					`${controllerClass.name} has admin path "${path}" but is not decorated with @UseRealm('platform'). All admin controllers must use the platform realm.`
+				);
+			}
+
 			if (!realm) continue;
 
-			// Rule 1: Every declared realm must have a registered adapter
+			// Rule 2: Every declared realm must have a registered adapter
 			if (!this.realmAdapters.has(realm)) {
 				errors.push(
 					`${controllerClass.name} declares @UseRealm('${realm}') but no adapter ` +
 						`is registered for realm "${realm}". Register an IRealmAuthAdapter ` +
 						`for this realm in the REALM_ADAPTER_MAP.`
-				);
-			}
-
-			// Rule 2: @UseRealm('storefront') must NOT be on an /admin path
-			if (realm === 'storefront' && this.isAdminPath(path)) {
-				errors.push(
-					`${controllerClass.name} is @UseRealm('storefront') but its path "${path}" ` +
-						`contains /admin. Storefront controllers must not serve admin routes.`
 				);
 			}
 
