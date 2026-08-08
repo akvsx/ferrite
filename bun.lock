@@ -90,6 +90,7 @@
         "@types/node": "^26.0.1",
         "@types/pg": "^8.18.0",
         "@types/supertest": "^6.0.2",
+        "drizzle-dbml-generator": "^0.10.0",
         "drizzle-kit": "^0.31.9",
         "ioredis": "^5.11.1",
         "jest": "^30.0.0",
@@ -2388,6 +2389,8 @@
     "dotignore": ["dotignore@0.1.2", "", { "dependencies": { "minimatch": "^3.0.4" }, "bin": { "ignored": "bin/ignored" } }, "sha512-UGGGWfSauusaVJC+8fgV+NVvBXkCTmVv7sk6nojDZZvuOUNGUy0Zk4UpHQD6EDjS0jpBwcACvH4eofvyzBcRDw=="],
 
     "drizzle": ["drizzle@1.4.0", "", { "dependencies": { "deepmerge": "^2.1.1", "eth-block-tracker-es5": "^2.3.2", "is-plain-object": "^2.0.4", "redux": "^4.0.0", "redux-saga": "^0.16.0", "web3": "1.0.0-beta.35" } }, "sha512-4yeBQLIni5chQfvDChNPL0fFs9dGBPUn1MbXuPpam3cgarpLYh4FFM9kkL/XWya8SlIoyv9wmpk5bJNHOxn1Vw=="],
+
+    "drizzle-dbml-generator": ["drizzle-dbml-generator@0.10.0", "", { "peerDependencies": { "drizzle-orm": ">=0.36.0" } }, "sha512-cMZq9E3U3RlmE0uBeXyc6oWJ0royOkC6HiTlc9LDeMe+W87poZTzKoNYUyAxZrs4Q1RQtob+cGKiefV4ZoI8HA=="],
 
     "drizzle-kit": ["drizzle-kit@0.31.10", "", { "dependencies": { "@drizzle-team/brocli": "^0.10.2", "@esbuild-kit/esm-loader": "^2.5.5", "esbuild": "^0.25.4", "tsx": "^4.21.0" }, "bin": { "drizzle-kit": "bin.cjs" } }, "sha512-7OZcmQUrdGI+DUNNsKBn1aW8qSoKuTH7d0mYgSP8bAzdFzKoovxEFnoGQp2dVs82EOJeYycqRtciopszwUf8bw=="],
 
