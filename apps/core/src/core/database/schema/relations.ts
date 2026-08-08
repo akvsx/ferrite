@@ -1,9 +1,25 @@
 import { relations } from 'drizzle-orm';
 import { userAuthProviders } from './auth.schema';
+import { categories, productCategories } from './category.schema';
 import { currencies, exchangeRates } from './currency.schema';
+import {
+	inventoryAdjustments,
+	inventoryItems,
+	inventoryLevels,
+	warehouses,
+} from './inventory.schema';
 import { userOnboarding } from './onboarding.schema';
 import { userPaymentMethods } from './payment.schema';
 import { userNotificationPreferences } from './preferences.schema';
+import {
+	productImages,
+	products,
+	productVariants,
+	suppliers,
+	variantImages,
+	variantLabels,
+} from './product.schema';
+import { promotions } from './promotion.schema';
 import {
 	storeInvitations,
 	storeMembers,
@@ -28,6 +44,7 @@ export const usersRelations = relations(users, ({ one, many }) => ({
 	createdStores: many(stores),
 	storeMemberships: many(storeMembers),
 	sentStoreInvitations: many(storeInvitations, { relationName: 'invitedBy' }),
+	inventoryAdjustments: many(inventoryAdjustments),
 }));
 
 export const userOnboardingRelations = relations(userOnboarding, ({ one }) => ({
@@ -91,6 +108,11 @@ export const storesRelations = relations(stores, ({ one, many }) => ({
 	roles: many(storeRoles),
 	invitations: many(storeInvitations),
 	storefrontUsers: many(storefrontUsers),
+	products: many(products),
+	suppliers: many(suppliers),
+	categories: many(categories),
+	warehouses: many(warehouses),
+	promotions: many(promotions),
 }));
 
 export const storeRolesRelations = relations(storeRoles, ({ one, many }) => ({
@@ -175,5 +197,178 @@ export const exchangeRatesRelations = relations(exchangeRates, ({ one }) => ({
 		fields: [exchangeRates.toCurrencyCode],
 		references: [currencies.code],
 		relationName: 'ratesTo',
+	}),
+}));
+
+// ─────────────────────────────────────────
+// SUPPLIER RELATIONS
+// ─────────────────────────────────────────
+
+export const suppliersRelations = relations(suppliers, ({ one, many }) => ({
+	store: one(stores, {
+		fields: [suppliers.storeId],
+		references: [stores.id],
+	}),
+	products: many(products),
+}));
+
+// ─────────────────────────────────────────
+// PRODUCT RELATIONS
+// ─────────────────────────────────────────
+
+export const productsRelations = relations(products, ({ one, many }) => ({
+	store: one(stores, {
+		fields: [products.storeId],
+		references: [stores.id],
+	}),
+	supplier: one(suppliers, {
+		fields: [products.supplierId],
+		references: [suppliers.id],
+	}),
+	images: many(productImages),
+	variants: many(productVariants),
+	categories: many(productCategories),
+}));
+
+export const productImagesRelations = relations(productImages, ({ one }) => ({
+	product: one(products, {
+		fields: [productImages.productId],
+		references: [products.id],
+	}),
+}));
+
+export const productVariantsRelations = relations(
+	productVariants,
+	({ one, many }) => ({
+		product: one(products, {
+			fields: [productVariants.productId],
+			references: [products.id],
+		}),
+		labels: many(variantLabels),
+		images: many(variantImages),
+		inventoryItems: many(inventoryItems),
+		targetedPromotions: many(promotions),
+	})
+);
+
+export const variantLabelsRelations = relations(variantLabels, ({ one }) => ({
+	variant: one(productVariants, {
+		fields: [variantLabels.variantId],
+		references: [productVariants.id],
+	}),
+}));
+
+export const variantImagesRelations = relations(variantImages, ({ one }) => ({
+	variant: one(productVariants, {
+		fields: [variantImages.variantId],
+		references: [productVariants.id],
+	}),
+}));
+
+// ─────────────────────────────────────────
+// CATEGORY RELATIONS
+// ─────────────────────────────────────────
+
+export const categoriesRelations = relations(categories, ({ one, many }) => ({
+	store: one(stores, {
+		fields: [categories.storeId],
+		references: [stores.id],
+	}),
+	parent: one(categories, {
+		fields: [categories.parentId],
+		references: [categories.id],
+		relationName: 'categoryParent',
+	}),
+	children: many(categories, { relationName: 'categoryParent' }),
+	products: many(productCategories),
+	targetedPromotions: many(promotions),
+}));
+
+export const productCategoriesRelations = relations(
+	productCategories,
+	({ one }) => ({
+		product: one(products, {
+			fields: [productCategories.productId],
+			references: [products.id],
+		}),
+		category: one(categories, {
+			fields: [productCategories.categoryId],
+			references: [categories.id],
+		}),
+	})
+);
+
+// ─────────────────────────────────────────
+// WAREHOUSE RELATIONS
+// ─────────────────────────────────────────
+
+export const warehousesRelations = relations(warehouses, ({ one, many }) => ({
+	store: one(stores, {
+		fields: [warehouses.storeId],
+		references: [stores.id],
+	}),
+	inventoryItems: many(inventoryItems),
+}));
+
+// ─────────────────────────────────────────
+// INVENTORY RELATIONS
+// ─────────────────────────────────────────
+
+export const inventoryItemsRelations = relations(
+	inventoryItems,
+	({ one, many }) => ({
+		variant: one(productVariants, {
+			fields: [inventoryItems.variantId],
+			references: [productVariants.id],
+		}),
+		warehouse: one(warehouses, {
+			fields: [inventoryItems.warehouseId],
+			references: [warehouses.id],
+		}),
+		level: one(inventoryLevels),
+		adjustments: many(inventoryAdjustments),
+	})
+);
+
+export const inventoryLevelsRelations = relations(
+	inventoryLevels,
+	({ one }) => ({
+		inventoryItem: one(inventoryItems, {
+			fields: [inventoryLevels.inventoryItemId],
+			references: [inventoryItems.id],
+		}),
+	})
+);
+
+export const inventoryAdjustmentsRelations = relations(
+	inventoryAdjustments,
+	({ one }) => ({
+		inventoryItem: one(inventoryItems, {
+			fields: [inventoryAdjustments.inventoryItemId],
+			references: [inventoryItems.id],
+		}),
+		adjustedBy: one(users, {
+			fields: [inventoryAdjustments.adjustedBy],
+			references: [users.id],
+		}),
+	})
+);
+
+// ─────────────────────────────────────────
+// PROMOTION RELATIONS
+// ─────────────────────────────────────────
+
+export const promotionsRelations = relations(promotions, ({ one }) => ({
+	store: one(stores, {
+		fields: [promotions.storeId],
+		references: [stores.id],
+	}),
+	targetSku: one(productVariants, {
+		fields: [promotions.targetSkuId],
+		references: [productVariants.id],
+	}),
+	targetCategory: one(categories, {
+		fields: [promotions.targetCategoryId],
+		references: [categories.id],
 	}),
 }));
