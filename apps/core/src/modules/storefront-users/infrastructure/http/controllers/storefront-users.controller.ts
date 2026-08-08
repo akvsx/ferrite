@@ -12,7 +12,7 @@ import {
 	Patch,
 	Req,
 } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { DeleteStorefrontUserUseCase } from '../../../application/use-cases/delete-storefront-user.use-case';
 import { GetStorefrontUserUseCase } from '../../../application/use-cases/get-storefront-user.use-case';
 import { UpdateStorefrontUserUseCase } from '../../../application/use-cases/update-storefront-user.use-case';
@@ -26,6 +26,7 @@ import { UpdateStorefrontUserDto } from '../dto/update-storefront-user.dto';
 @ApiTags('Storefront Users')
 @UseRealm('storefront')
 @Controller('stores/:storeId/users')
+@ApiBearerAuth('swagger-access-token')
 export class StorefrontUserController {
 	constructor(
 		@Inject(OTEL_TRACER) private readonly tracer: ITracer,

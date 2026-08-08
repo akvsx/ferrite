@@ -16,7 +16,7 @@ import {
 	Query,
 	Req,
 } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AdminSetBanStatusStorefrontUserUseCase } from '../../../application/use-cases/admin-set-ban-status-storefront-user.use-case';
 import { DeleteStorefrontUserUseCase } from '../../../application/use-cases/delete-storefront-user.use-case';
 import { GetStorefrontUserUseCase } from '../../../application/use-cases/get-storefront-user.use-case';
@@ -36,6 +36,7 @@ import { UpdateStorefrontUserDto } from '../dto/update-storefront-user.dto';
 @ApiTags('Storefront Users')
 @UseRealm('platform')
 @Controller('stores/:storeId/users/admin')
+@ApiBearerAuth('swagger-access-token')
 export class StorefrontUserAdminController {
 	constructor(
 		@Inject(OTEL_TRACER) private readonly tracer: ITracer,
