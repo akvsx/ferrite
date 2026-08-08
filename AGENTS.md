@@ -13,6 +13,7 @@ This project follows strict architectural conventions. Before modifying or gener
 - **Ports & Errors:** Load `nest-ports-and-errors` when defining interfaces for external dependencies (DB, services) or custom domain errors.
 - **Repositories:** Load `nest-repository` when defining repositories for external dependencies (DB, services).
 - **Database Schemas:** Load `drizzle-schemas` when defining new database tables, modifying relations, or writing DB schema tests.
+- **Roles & Permissions:** Load `roles-and-permissions` when dealing with admin routes, authorization guards, platform RBAC, or store-level granular permissions.
 
 ## Module Context
 
