@@ -43,7 +43,7 @@ describe('storefront_users table', () => {
 		expect(sfUser.id).toBeDefined();
 		expect(sfUser.storeId).toBe(store.id);
 		expect(sfUser.email).toBeDefined();
-		expect(sfUser.emailVerified).toBe(false);
+		expect(sfUser.emailVerifiedAt).toBeNull();
 		expect(sfUser.metadata).toEqual({});
 		expect(sfUser.createdAt).toBeInstanceOf(Date);
 		expect(sfUser.updatedAt).toBeInstanceOf(Date);
