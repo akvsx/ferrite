@@ -57,7 +57,7 @@ export const storefrontUsers = pgTable(
 			.where(sql`${t.deletedAt} is null`),
 		index('idx_storefront_users_store_id').on(t.storeId),
 		index('idx_storefront_users_email').on(sql`lower(${t.email})`),
-		index('idx_storefront_users_created_at').on(t.createdAt),
+		index('idx_storefront_users_store_created_at').on(t.storeId, t.createdAt),
 	]
 );
 
