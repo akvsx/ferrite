@@ -6,9 +6,28 @@
 
 import type { PermissionKey } from '@ferrite/schema/common/permissions.zodschema';
 import { v4 as uuidv4 } from 'uuid';
+import type {
+	NewCategory,
+	NewProductCategory,
+} from '../schema/category.schema';
 import type { NewCurrency, NewExchangeRate } from '../schema/currency.schema';
+import type {
+	NewInventoryAdjustment,
+	NewInventoryItem,
+	NewInventoryLevel,
+	NewWarehouse,
+} from '../schema/inventory.schema';
 import type { NewUserPaymentMethod } from '../schema/payment.schema';
 import type { NewUserNotificationPreference } from '../schema/preferences.schema';
+import type {
+	NewProduct,
+	NewProductImage,
+	NewProductVariant,
+	NewSupplier,
+	NewVariantImage,
+	NewVariantLabel,
+} from '../schema/product.schema';
+import type { NewPromotion } from '../schema/promotion.schema';
 import type {
 	NewStore,
 	NewStoreInvitation,
@@ -253,4 +272,215 @@ export function createTestStorefrontUser(
 		email: `storefront-test-${emailCounter}-${Date.now()}@example.com`,
 		...overrides,
 	};
+}
+
+// ── Suppliers ────────────────────────────
+let supplierCounter = 0;
+
+export function createTestSupplier(
+	storeId: string,
+	overrides: Partial<NewSupplier> = {}
+): NewSupplier {
+	supplierCounter += 1;
+	return {
+		storeId,
+		name: `Test Supplier ${supplierCounter} - ${Date.now()}`,
+		...overrides,
+	};
+}
+
+// ── Products ─────────────────────────────
+let productCounter = 0;
+
+export function createTestProduct(
+	storeId: string,
+	overrides: Partial<NewProduct> = {}
+): NewProduct {
+	productCounter += 1;
+	return {
+		storeId,
+		name: `Test Product ${productCounter} - ${Date.now()}`,
+		slug: `test-product-${productCounter}-${Date.now()}`,
+		...overrides,
+	};
+}
+
+// ── Product Images ───────────────────────
+export function createTestProductImage(
+	productId: string,
+	overrides: Partial<NewProductImage> = {}
+): NewProductImage {
+	return {
+		productId,
+		url: `https://example.com/images/product-${Date.now()}.jpg`,
+		...overrides,
+	};
+}
+
+// ── Product Variants ─────────────────────
+let variantCounter = 0;
+
+export function createTestProductVariant(
+	productId: string,
+	overrides: Partial<NewProductVariant> = {}
+): NewProductVariant {
+	variantCounter += 1;
+	return {
+		productId,
+		sku: `TEST-SKU-${variantCounter}-${Date.now()}`,
+		price: '19.9900',
+		...overrides,
+	};
+}
+
+// ── Variant Labels ───────────────────────
+export function createTestVariantLabel(
+	variantId: string,
+	overrides: Partial<NewVariantLabel> = {}
+): NewVariantLabel {
+	return {
+		variantId,
+		labelName: 'Color',
+		labelValue: 'Red',
+		...overrides,
+	};
+}
+
+// ── Variant Images ───────────────────────
+export function createTestVariantImage(
+	variantId: string,
+	overrides: Partial<NewVariantImage> = {}
+): NewVariantImage {
+	return {
+		variantId,
+		url: `https://example.com/images/variant-${Date.now()}.jpg`,
+		...overrides,
+	};
+}
+
+// ── Categories ───────────────────────────
+let categoryCounter = 0;
+
+export function createTestCategory(
+	storeId: string,
+	overrides: Partial<NewCategory> = {}
+): NewCategory {
+	categoryCounter += 1;
+	return {
+		storeId,
+		name: `Test Category ${categoryCounter} - ${Date.now()}`,
+		slug: `test-category-${categoryCounter}-${Date.now()}`,
+		...overrides,
+	};
+}
+
+// ── Product Categories ───────────────────
+export function createTestProductCategory(
+	productId: string,
+	categoryId: string,
+	overrides: Partial<NewProductCategory> = {}
+): NewProductCategory {
+	return {
+		productId,
+		categoryId,
+		...overrides,
+	};
+}
+
+// ── Warehouses ───────────────────────────
+let warehouseCounter = 0;
+
+export function createTestWarehouse(
+	storeId: string,
+	overrides: Partial<NewWarehouse> = {}
+): NewWarehouse {
+	warehouseCounter += 1;
+	return {
+		storeId,
+		name: `Test Warehouse ${warehouseCounter} - ${Date.now()}`,
+		...overrides,
+	};
+}
+
+// ── Inventory Items ──────────────────────
+let inventoryItemCounter = 0;
+
+export function createTestInventoryItem(
+	variantId: string,
+	warehouseId: string,
+	overrides: Partial<NewInventoryItem> = {}
+): NewInventoryItem {
+	inventoryItemCounter += 1;
+	return {
+		variantId,
+		warehouseId,
+		batchNumber: `BATCH-${inventoryItemCounter}-${Date.now()}`,
+		...overrides,
+	};
+}
+
+// ── Inventory Levels ─────────────────────
+export function createTestInventoryLevel(
+	inventoryItemId: string,
+	overrides: Partial<NewInventoryLevel> = {}
+): NewInventoryLevel {
+	return {
+		inventoryItemId,
+		quantityOnHand: 100,
+		quantityReserved: 0,
+		...overrides,
+	};
+}
+
+// ── Inventory Adjustments ────────────────
+export function createTestInventoryAdjustment(
+	inventoryItemId: string,
+	overrides: Partial<NewInventoryAdjustment> = {}
+): NewInventoryAdjustment {
+	return {
+		inventoryItemId,
+		adjustmentType: 'restock',
+		quantityChange: 50,
+		...overrides,
+	};
+}
+
+// ── Promotions ───────────────────────────
+let promotionCounter = 0;
+
+/**
+ * Builds a NewPromotion with type-appropriate sparse defaults.
+ * Pass `promotionType` to set the discriminator and get sensible defaults
+ * for the sparse columns of that type.
+ */
+export function createTestPromotion(
+	storeId: string,
+	promotionType: NewPromotion['promotionType'] = 'percentage_discount',
+	overrides: Partial<NewPromotion> = {}
+): NewPromotion {
+	promotionCounter += 1;
+
+	const base: NewPromotion = {
+		storeId,
+		promotionType,
+		name: `Test Promotion ${promotionCounter} - ${Date.now()}`,
+		validFrom: new Date(),
+		...overrides,
+	};
+
+	// Set sensible sparse defaults per type (unless overridden)
+	switch (promotionType) {
+		case 'percentage_discount':
+			return { discountPercentage: 10, ...base };
+		case 'fixed_discount':
+			return { discountAmount: '5.0000', ...base };
+		case 'buy_x_get_y':
+			return { buyQuantity: 2, getQuantity: 1, ...base };
+		case 'free_shipping':
+			return { minimumCartValue: '25.0000', ...base };
+		case 'bundle_deal':
+			return { bundlePrice: '49.9900', ...base };
+		default:
+			return base;
+	}
 }
