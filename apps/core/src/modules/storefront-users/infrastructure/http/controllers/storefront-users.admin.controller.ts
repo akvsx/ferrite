@@ -1,6 +1,8 @@
+import { Pagination } from '@common/decorators/pagination.decorator';
 import { type PlatformAuthenticatedRequest } from '@common/types/request';
 import { AppLogger } from '@core/logger/logger.service';
 import { type ITracer, OTEL_TRACER } from '@core/tracer';
+import { type PaginationInput } from '@ferrite/schema';
 import { UseRealm } from '@modules/auth';
 import {
 	BadRequestException,
@@ -13,7 +15,6 @@ import {
 	Param,
 	Patch,
 	Post,
-	Query,
 	Req,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
@@ -30,7 +31,6 @@ import {
 	AdminUnbanUserDocs,
 	AdminUpdateUserDocs,
 } from '../docs/storefront-users.admin.docs';
-import { GetStorefrontUsersDto } from '../dto/get-storefront-users.dto';
 import { UpdateStorefrontUserDto } from '../dto/update-storefront-user.dto';
 
 @ApiTags('Storefront Users')
@@ -54,15 +54,15 @@ export class StorefrontUserAdminController {
 	@AdminGetUsersDocs()
 	async getUsers(
 		@Req() req: PlatformAuthenticatedRequest,
-		@Query() query: GetStorefrontUsersDto
+		@Pagination() pagination: PaginationInput
 	) {
 		return this.tracer.withSpan(
 			'http.storefront-users-admin.getUsers',
 			async () => {
 				const result = await this.getUsersUseCase.execute({
 					storeId: req.params.storeId ?? '',
-					cursor: query.cursor,
-					limit: query.limit,
+					cursor: pagination.cursor,
+					limit: pagination.limit,
 				});
 				if (!result.ok) throw new BadRequestException(result.error.message);
 				return result.value;

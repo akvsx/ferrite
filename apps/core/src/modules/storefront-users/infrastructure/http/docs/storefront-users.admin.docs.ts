@@ -1,9 +1,9 @@
+import { ApiPagination } from '@common/decorators/pagination.decorator';
 import { applyDecorators } from '@nestjs/common';
 import {
 	ApiBearerAuth,
 	ApiOperation,
 	ApiParam,
-	ApiQuery,
 	ApiResponse,
 } from '@nestjs/swagger';
 
@@ -16,18 +16,7 @@ export const AdminGetUsersDocs = () =>
 			description: 'Store ID',
 			type: 'string',
 		}),
-		ApiQuery({
-			name: 'cursor',
-			required: false,
-			type: 'string',
-			description: 'Pagination cursor',
-		}),
-		ApiQuery({
-			name: 'limit',
-			required: false,
-			type: 'number',
-			description: 'Number of items to return',
-		}),
+		ApiPagination(),
 		ApiResponse({
 			status: 200,
 			description: 'Successfully retrieved list of storefront users.',

@@ -1,6 +1,10 @@
 import { DB } from '@core/database/db.provider';
 import type { TDatabase } from '@core/database/db.type';
 import { storefrontUsers } from '@core/database/schema';
+import {
+	buildPaginatedResponse,
+	cursorPaginationClauses,
+} from '@core/database/utils/cursor-pagination.util';
 import { traceDbOp } from '@core/database/utils/trace-db-op.util';
 import { type ITracer } from '@core/tracer';
 import { OTEL_TRACER } from '@core/tracer/tracer.constraint';
@@ -10,7 +14,7 @@ import {
 	type UpdateStorefrontUser,
 } from '@ferrite/schema';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, eq, gt, isNull } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { type IStorefrontUserRepository } from '../../../domain/ports/storefront-user-repository.port';
 import { StorefrontUserMapper } from '../mappers/storefront-user.mapper';
 
@@ -57,35 +61,31 @@ export class DrizzleStorefrontUserRepository
 			'db.storefront_users.findByStoreId',
 			{ 'db.table': 'storefront_users', 'db.operation': 'select' },
 			async () => {
-				const queryLimit = limit + 1;
-
-				const conditions = [
-					eq(storefrontUsers.storeId, storeId),
-					isNull(storefrontUsers.deletedAt),
-				];
-
-				if (cursor) {
-					conditions.push(gt(storefrontUsers.id, cursor));
-				}
+				const { where, orderBy, queryLimit } = cursorPaginationClauses({
+					table: storefrontUsers,
+					idColumn: storefrontUsers.id,
+					sortColumn: storefrontUsers.createdAt,
+					cursor,
+					limit,
+					filters: [
+						eq(storefrontUsers.storeId, storeId),
+						isNull(storefrontUsers.deletedAt),
+					],
+				});
 
 				const rows = await this.db
 					.select()
 					.from(storefrontUsers)
-					.where(and(...conditions))
-					.orderBy(storefrontUsers.id)
+					.where(where)
+					.orderBy(orderBy)
 					.limit(queryLimit);
 
-				const hasNextPage = rows.length > limit;
-				const results = hasNextPage ? rows.slice(0, -1) : rows;
-
-				const nextCursor = hasNextPage
-					? results[results.length - 1].id
-					: undefined;
-
-				return {
-					items: results.map(StorefrontUserMapper.toDomain),
-					nextCursor,
-				};
+				return buildPaginatedResponse(
+					rows,
+					limit,
+					StorefrontUserMapper.toDomain,
+					(row) => row.id
+				);
 			}
 		);
 	}
