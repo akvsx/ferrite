@@ -70,11 +70,9 @@ export const inventoryItems = pgTable(
 	},
 	(t) => [
 		// One entry per variant + warehouse + batch
-		unique('uq_inventory_items_variant_warehouse_batch').on(
-			t.variantId,
-			t.warehouseId,
-			t.batchNumber
-		),
+		unique('uq_inventory_items_variant_warehouse_batch')
+			.on(t.variantId, t.warehouseId, t.batchNumber)
+			.nullsNotDistinct(),
 		index('idx_inventory_items_variant_id').on(t.variantId),
 		index('idx_inventory_items_warehouse_id').on(t.warehouseId),
 		// Restock scheduling queries
