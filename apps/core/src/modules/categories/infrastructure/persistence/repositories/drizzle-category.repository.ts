@@ -1,13 +1,17 @@
 import { DB } from '@core/database/db.provider';
 import type { TDatabase } from '@core/database/db.type';
 import { categories } from '@core/database/schema/category.schema';
+import {
+	buildPaginatedResponse,
+	cursorPaginationClauses,
+} from '@core/database/utils/cursor-pagination.util';
 import { traceDbOp } from '@core/database/utils/trace-db-op.util';
 import { type ITracer } from '@core/tracer';
 import { OTEL_TRACER } from '@core/tracer/tracer.constraint';
 import type { Category, CreateCategory, UpdateCategory } from '@ferrite/schema';
 import type { PaginatedResponse } from '@ferrite/schema/common/pagination.zodschema';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, asc, eq, gt } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import type { ICategoryRepository } from '../../../domain/ports/category.repository.port';
 import { CategoryMapper } from '../mappers/category.mapper';
 
@@ -123,25 +127,28 @@ export class DrizzleCategoryRepository implements ICategoryRepository {
 			'db.categories.findByStoreId',
 			{ 'db.table': 'categories', 'db.operation': 'select' },
 			async () => {
-				const query = this.db
+				const { where, orderBy, queryLimit } = cursorPaginationClauses({
+					table: categories,
+					idColumn: categories.id,
+					sortColumn: categories.createdAt,
+					cursor,
+					limit,
+					filters: [eq(categories.storeId, storeId)],
+				});
+
+				const rows = await this.db
 					.select()
 					.from(categories)
-					.where(
-						cursor
-							? and(eq(categories.storeId, storeId), gt(categories.id, cursor))
-							: eq(categories.storeId, storeId)
-					)
-					.orderBy(asc(categories.id))
-					.limit(limit + 1);
+					.where(where)
+					.orderBy(orderBy)
+					.limit(queryLimit);
 
-				const rows = await query;
-				const hasMore = rows.length > limit;
-				const items = hasMore ? rows.slice(0, -1) : rows;
-
-				return {
-					items: items.map(CategoryMapper.toDomain),
-					nextCursor: hasMore ? items[items.length - 1].id : undefined,
-				};
+				return buildPaginatedResponse(
+					rows,
+					limit,
+					CategoryMapper.toDomain,
+					(row) => row.id
+				);
 			}
 		);
 	}

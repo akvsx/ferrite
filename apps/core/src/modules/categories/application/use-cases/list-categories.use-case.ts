@@ -28,7 +28,7 @@ export class ListCategoriesUseCase implements IListCategoriesUseCase {
 		return this.tracer.withSpan('use-case.categories.list', async () => {
 			const result = await this.categoryRepo.findByStoreId(
 				input.storeId,
-				'0', //input.query.cursor,
+				input.query.cursor,
 				input.query.limit
 			);
 
