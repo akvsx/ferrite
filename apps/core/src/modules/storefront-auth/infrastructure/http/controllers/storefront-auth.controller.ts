@@ -74,7 +74,6 @@ import {
 } from '../docs/storefront-auth.docs';
 import { LoginInputDTO } from '../dto/login.dto';
 import { RegisterInputDTO } from '../dto/register.dto';
-import { ResendVerificationEmailDTO } from '../dto/resend-verification-email.dto';
 import { VerifyEmailDTO } from '../dto/verify-email.dto';
 
 @ApiTags('Storefront Auth')
@@ -309,12 +308,30 @@ export class StorefrontAuthController {
 	@SkipCsrf()
 	async resendVerificationEmail(
 		@Param('storeId', ParseUUIDPipe) storeId: string,
-		@Body() payload: ResendVerificationEmailDTO
+		@Req() request: Request
 	) {
+		const sessionId = extractCookie(request, this.cookieName);
+
+		if (!sessionId) {
+			throw new UnauthorizedException('Session missing');
+		}
+
+		// extract user id and email from session
+		const sessionResult = await this.getSessionUseCase.execute({
+			sessionId,
+			storeId,
+		});
+
+		if (sessionResult.isErr()) {
+			throw new UnauthorizedException(sessionResult.error.message);
+		}
+
+		const user = sessionResult.value.user;
+
 		const result = await this.resendVerificationEmailUC.execute({
 			storeId,
-			userId: payload.userId,
-			email: payload.email,
+			userId: user.id,
+			email: user.email,
 		});
 
 		if (result.isErr()) {
