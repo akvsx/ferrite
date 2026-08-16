@@ -229,11 +229,17 @@ export class StorefrontAuthController {
 	@SkipCsrf()
 	async register(
 		@Param('storeId', ParseUUIDPipe) storeId: string,
-		@Body() payload: RegisterInputDTO
+		@Body() payload: RegisterInputDTO,
+		@Req() request: Request,
+		@Res({ passthrough: true }) reply: FastifyReply
 	) {
 		const result = await this.registerUseCase.execute({
 			...payload,
 			storeId,
+			ipAddress: request.ip,
+			userAgent: Array.isArray(request.headers['user-agent'])
+				? (request.headers['user-agent'][0] ?? '')
+				: (request.headers['user-agent'] ?? ''),
 		});
 
 		if (result.isErr()) {
@@ -250,9 +256,14 @@ export class StorefrontAuthController {
 			throw new UnprocessableEntityException(result.error.message);
 		}
 
+		const csrfToken = randomBytes(32).toString('hex');
+
+		this.setSessionCookie(reply, result.value.session.id);
+		this.setCsrfCookie(reply, csrfToken);
+
 		return {
 			step: AuthStep.EMAIL_VERIFICATION_REQUIRED,
-			user: result.value,
+			user: result.value.user,
 		};
 	}
 
