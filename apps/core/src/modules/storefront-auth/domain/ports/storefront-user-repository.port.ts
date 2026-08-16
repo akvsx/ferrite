@@ -13,7 +13,8 @@ export interface IStorefrontUserRepository {
 	): Promise<StorefrontUser>;
 	findByStoreIdAndEmail(
 		storeId: string,
-		email: string
+		email: string,
+		tx?: ITransactionContext
 	): Promise<StorefrontUser | null>;
 
 	findByIdAndStoreId(

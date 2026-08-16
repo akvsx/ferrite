@@ -88,7 +88,8 @@ export class DrizzleStorefrontUserRepository
 
 	async findByStoreIdAndEmail(
 		storeId: string,
-		email: string
+		email: string,
+		tx?: ITransactionContext
 	): Promise<StorefrontUser | null> {
 		const normalizedEmail = StorefrontUserMapper.normalizeEmail(email);
 		return traceDbOp(
@@ -96,7 +97,8 @@ export class DrizzleStorefrontUserRepository
 			'db.storefrontUsers.findByStoreIdAndEmail',
 			{ 'db.table': 'storefront_users', 'db.operation': 'select' },
 			async () => {
-				const [user] = await this.typedDb
+				const executor = tx ? DrizzleUnitOfWork.unwrap(tx) : this.typedDb;
+				const [user] = await executor
 					.select()
 					.from(storefrontUsers)
 					.where(
