@@ -1,3 +1,4 @@
+import type { ITransactionContext } from '@common/interfaces/unit-of-work.interface';
 import type { IUseCase } from '@common/interfaces/use-case.interface';
 import type { StorefrontSession } from '@ferrite/schema/storefront-auth/session.zodschema';
 import type { StorefrontUserResponse } from '@ferrite/schema/storefront-auth/storefront-user.zodschema';
@@ -15,6 +16,7 @@ export interface LoginInput {
 	password: string;
 	ipAddress: string;
 	userAgent: string;
+	tx?: ITransactionContext;
 }
 
 export interface LoginResult {

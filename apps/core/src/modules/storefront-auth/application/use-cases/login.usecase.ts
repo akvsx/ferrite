@@ -85,7 +85,8 @@ export class LoginUseCase implements IStorefrontLoginUser {
 				// 3. Lookup user
 				const user = await this.userRepo.findByStoreIdAndEmail(
 					input.storeId,
-					input.email
+					input.email,
+					input.tx
 				);
 
 				if (!user) {
@@ -114,7 +115,8 @@ export class LoginUseCase implements IStorefrontLoginUser {
 					// Increment failed login counter and get post-increment count
 					const newFailedCount = await this.userRepo.incrementFailedLogins(
 						user.id,
-						input.storeId
+						input.storeId,
+						input.tx
 					);
 
 					// Check if lockout threshold is reached
@@ -123,7 +125,8 @@ export class LoginUseCase implements IStorefrontLoginUser {
 						await this.userRepo.updateLockedUntil(
 							user.id,
 							input.storeId,
-							lockedUntil
+							lockedUntil,
+							input.tx
 						);
 						this.logger.warn(
 							`Account locked: userId=${user.id}, failedCount=${newFailedCount}, until=${lockedUntil.toISOString()}`
@@ -141,7 +144,11 @@ export class LoginUseCase implements IStorefrontLoginUser {
 
 				// 8. Reset failed login count on successful auth
 				if (user.failedLoginCount > 0) {
-					await this.userRepo.resetFailedLogins(user.id, input.storeId);
+					await this.userRepo.resetFailedLogins(
+						user.id,
+						input.storeId,
+						input.tx
+					);
 				}
 
 				// 9. Create Redis session
@@ -165,7 +172,7 @@ export class LoginUseCase implements IStorefrontLoginUser {
 
 				// 11. Update last login timestamp (fire-and-forget, don't block the response)
 				this.userRepo
-					.updateLastLoginAt(user.id, input.storeId)
+					.updateLastLoginAt(user.id, input.storeId, input.tx)
 					.catch((e) =>
 						this.logger.error('Failed to update lastLoginAt', String(e))
 					);
