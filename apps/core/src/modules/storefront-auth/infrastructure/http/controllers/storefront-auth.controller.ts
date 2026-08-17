@@ -7,6 +7,7 @@ import { extractCookie } from '@libs/http/extractCookie';
 import { UseRealm } from '@modules/auth';
 import { IncompleteConfigurationError } from '@modules/store';
 import { AccountLockedError } from '@modules/storefront-auth/domain/errors/account-locked.error';
+import { EmailAlreadyVerifiedError } from '@modules/storefront-auth/domain/errors/email-alraedy-vefiried';
 import { EmailAlreadyRegisteredError } from '@modules/storefront-auth/domain/errors/email-already-registered.error';
 import { InvalidCredentialsError } from '@modules/storefront-auth/domain/errors/invalid-credentials.error';
 import { MfaRequiredError } from '@modules/storefront-auth/domain/errors/mfa-required.error';
@@ -50,6 +51,7 @@ import {
 	HttpStatus,
 	Inject,
 	InternalServerErrorException,
+	NotFoundException,
 	Param,
 	ParseUUIDPipe,
 	Post,
@@ -60,6 +62,8 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ApiTags } from '@nestjs/swagger';
+import { StoreNotFoundError } from '@store/domain/errors/store-not-found.error';
+import { UserNotFoundError } from '@users/domain/errors/user-not-found.error';
 import type { FastifyReply } from 'fastify';
 import { SkipCsrf } from '../decorators/skip-csrf.decorator';
 import {
@@ -252,6 +256,11 @@ export class StorefrontAuthController {
 			if (result.error instanceof EmailAlreadyRegisteredError) {
 				throw new ConflictException(result.error.message);
 			}
+
+			if (result.error instanceof StoreNotFoundError) {
+				throw new NotFoundException(result.error.message);
+			}
+
 			throw new UnprocessableEntityException(result.error.message);
 		}
 
@@ -335,6 +344,9 @@ export class StorefrontAuthController {
 		});
 
 		if (result.isErr()) {
+			if (result.error instanceof EmailAlreadyVerifiedError) {
+				throw new ConflictException(result.error.message);
+			}
 			if (result.error instanceof RateLimitedError) {
 				throw new HttpException(
 					result.error.message,
@@ -345,6 +357,13 @@ export class StorefrontAuthController {
 				throw new InternalServerErrorException({
 					message: result.error.message,
 					error: 'Internal Server Error',
+					isPublic: true,
+				});
+			}
+			if (result.error instanceof UserNotFoundError) {
+				throw new NotFoundException({
+					message: result.error.message,
+					error: 'Not Found',
 					isPublic: true,
 				});
 			}

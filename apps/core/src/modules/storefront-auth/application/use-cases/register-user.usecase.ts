@@ -1,3 +1,4 @@
+import { isFkViolation } from '@common/errors/handlers/pg-errors';
 import { err, ok, type Result } from '@common/interfaces/result.interface';
 import {
 	type IUnitOfWork,
@@ -25,6 +26,7 @@ import {
 } from '@modules/storefront-auth/domain/ports/storefront-user-repository.port';
 import { Inject, Injectable } from '@nestjs/common';
 import { IncompleteConfigurationError } from '@store/domain/errors/incomplete-configuration.error';
+import { StoreNotFoundError } from '@store/domain/errors/store-not-found.error';
 import { EmailAlreadyRegisteredError } from '../../domain/errors/email-already-registered.error';
 
 @Injectable()
@@ -108,6 +110,10 @@ export class RegisterUserUseCase implements IStorefrontRegisterUser {
 
 				return ok(result);
 			} catch (error: unknown) {
+				if (isFkViolation(error)) {
+					return err(new StoreNotFoundError(input.storeId));
+				}
+
 				const normalized =
 					error instanceof Error ? error : new Error(String(error));
 				this.logger.error('Failed to register user', normalized.message);
