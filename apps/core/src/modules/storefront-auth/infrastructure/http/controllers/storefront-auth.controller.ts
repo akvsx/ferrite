@@ -10,14 +10,21 @@ import { AccountLockedError } from '@modules/storefront-auth/domain/errors/accou
 import { EmailAlreadyVerifiedError } from '@modules/storefront-auth/domain/errors/email-alraedy-vefiried';
 import { EmailAlreadyRegisteredError } from '@modules/storefront-auth/domain/errors/email-already-registered.error';
 import { InvalidCredentialsError } from '@modules/storefront-auth/domain/errors/invalid-credentials.error';
+import { InvalidLoginMethodError } from '@modules/storefront-auth/domain/errors/invalid-login-method.error';
+import { InvalidResetTokenError } from '@modules/storefront-auth/domain/errors/invalid-reset-token.error';
 import { MfaRequiredError } from '@modules/storefront-auth/domain/errors/mfa-required.error';
 import { RateLimitedError } from '@modules/storefront-auth/domain/errors/rate-limited.error';
+import { SessionLimitExceededError } from '@modules/storefront-auth/domain/errors/session-limit-exceeded.error';
 import {
 	type IResendVerificationEmail,
 	type IVerifyEmail,
 	STOREFRONT_RESEND_VERIFICATION_EMAIL_UC,
 	STOREFRONT_VERIFY_EMAIL_UC,
 } from '@modules/storefront-auth/domain/ports/email-verification-usecase.port';
+import {
+	type IStorefrontForgotPassword,
+	STOREFRONT_FORGOT_PASSWORD_UC,
+} from '@modules/storefront-auth/domain/ports/forgot-password-usecase.port';
 import {
 	type IStorefrontGetSession,
 	STOREFRONT_GET_SESSION_UC,
@@ -41,6 +48,14 @@ import {
 import type { IStorefrontRegisterUser } from '@modules/storefront-auth/domain/ports/register-usecase.port';
 import { STOREFRONT_REGISTER_UC } from '@modules/storefront-auth/domain/ports/register-usecase.port';
 import {
+	type IStorefrontResetPassword,
+	STOREFRONT_RESET_PASSWORD_UC,
+} from '@modules/storefront-auth/domain/ports/reset-password-usecase.port';
+import {
+	type IStorefrontUpdatePassword,
+	STOREFRONT_UPDATE_PASSWORD_UC,
+} from '@modules/storefront-auth/domain/ports/update-password-usecase.port';
+import {
 	Body,
 	ConflictException,
 	Controller,
@@ -55,6 +70,7 @@ import {
 	Param,
 	ParseUUIDPipe,
 	Post,
+	Put,
 	Req,
 	Res,
 	UnauthorizedException,
@@ -67,6 +83,7 @@ import { UserNotFoundError } from '@users/domain/errors/user-not-found.error';
 import type { FastifyReply } from 'fastify';
 import { SkipCsrf } from '../decorators/skip-csrf.decorator';
 import {
+	ForgotPasswordDocs,
 	GetSessionDocs,
 	GetSessionsDocs,
 	LoginUserDocs,
@@ -74,10 +91,15 @@ import {
 	LogoutDocs,
 	RegisterUserDocs,
 	ResendVerificationEmailDocs,
+	ResetPasswordDocs,
+	UpdatePasswordDocs,
 	VerifyEmailDocs,
 } from '../docs/storefront-auth.docs';
+import { ForgotPasswordDTO } from '../dto/forgot-password.dto';
 import { LoginInputDTO } from '../dto/login.dto';
 import { RegisterInputDTO } from '../dto/register.dto';
+import { ResetPasswordDTO } from '../dto/reset-password.dto';
+import { UpdatePasswordDTO } from '../dto/update-password.dto';
 import { VerifyEmailDTO } from '../dto/verify-email.dto';
 
 @ApiTags('Storefront Auth')
@@ -107,6 +129,12 @@ export class StorefrontAuthController {
 		private readonly getSessionUseCase: IStorefrontGetSession,
 		@Inject(STOREFRONT_GET_SESSIONS_UC)
 		private readonly getSessionsUseCase: IStorefrontGetSessions,
+		@Inject(STOREFRONT_UPDATE_PASSWORD_UC)
+		private readonly updatePasswordUseCase: IStorefrontUpdatePassword,
+		@Inject(STOREFRONT_FORGOT_PASSWORD_UC)
+		private readonly forgotPasswordUseCase: IStorefrontForgotPassword,
+		@Inject(STOREFRONT_RESET_PASSWORD_UC)
+		private readonly resetPasswordUseCase: IStorefrontResetPassword,
 		config: ConfigService
 	) {
 		const ferriteConfig = config.getOrThrow<FerriteConfig>('ferrite');
@@ -151,6 +179,9 @@ export class StorefrontAuthController {
 				throw new ForbiddenException(error.message);
 			}
 			if (error instanceof RateLimitedError) {
+				throw new HttpException(error.message, HttpStatus.TOO_MANY_REQUESTS);
+			}
+			if (error instanceof SessionLimitExceededError) {
 				throw new HttpException(error.message, HttpStatus.TOO_MANY_REQUESTS);
 			}
 			if (error instanceof MfaRequiredError) {
@@ -428,6 +459,116 @@ export class StorefrontAuthController {
 		this.clearCsrfCookie(reply);
 
 		return { step: 'logged_out_all' };
+	}
+
+	@Put('password')
+	@UpdatePasswordDocs()
+	@HttpCode(HttpStatus.OK)
+	async updatePassword(
+		@Param('storeId', ParseUUIDPipe) storeId: string,
+		@Body() payload: UpdatePasswordDTO,
+		@Req() request: Request
+	) {
+		const sessionId = extractCookie(request, this.cookieName);
+
+		if (!sessionId) {
+			throw new UnauthorizedException('Session missing');
+		}
+
+		const sessionResult = await this.getSessionUseCase.execute({
+			sessionId,
+			storeId,
+		});
+
+		if (sessionResult.isErr()) {
+			throw new UnauthorizedException(sessionResult.error.message);
+		}
+
+		const result = await this.updatePasswordUseCase.execute({
+			storeId,
+			userId: sessionResult.value.user.id,
+			currentPassword: payload.currentPassword,
+			newPassword: payload.newPassword,
+		});
+
+		if (result.isErr()) {
+			if (
+				result.error instanceof InvalidCredentialsError ||
+				result.error instanceof InvalidLoginMethodError
+			) {
+				throw new UnprocessableEntityException('Invalid credentials');
+			}
+			throw new InternalServerErrorException('Failed to update password');
+		}
+
+		return { message: 'Password updated successfully' };
+	}
+
+	@Post('password/forgot')
+	@ForgotPasswordDocs()
+	@HttpCode(HttpStatus.OK)
+	@PublicRoute()
+	@SkipCsrf()
+	async forgotPassword(
+		@Param('storeId', ParseUUIDPipe) storeId: string,
+		@Body() payload: ForgotPasswordDTO
+	) {
+		const result = await this.forgotPasswordUseCase.execute({
+			storeId,
+			email: payload.email,
+		});
+
+		if (result.isErr()) {
+			if (result.error instanceof RateLimitedError) {
+				throw new HttpException(
+					result.error.message,
+					HttpStatus.TOO_MANY_REQUESTS
+				);
+			}
+			if (result.error instanceof IncompleteConfigurationError) {
+				throw new InternalServerErrorException({
+					message: result.error.message,
+					error: 'Internal Server Error',
+					isPublic: true,
+				});
+			}
+			throw new InternalServerErrorException('Failed to process request');
+		}
+
+		return { message: 'A reset email has been sent' };
+	}
+
+	@Post('password/reset')
+	@ResetPasswordDocs()
+	@HttpCode(HttpStatus.OK)
+	@PublicRoute()
+	@SkipCsrf()
+	async resetPassword(
+		@Param('storeId', ParseUUIDPipe) storeId: string,
+		@Body() payload: ResetPasswordDTO
+	) {
+		const result = await this.resetPasswordUseCase.execute({
+			storeId,
+			token: payload.token,
+			newPassword: payload.newPassword,
+		});
+
+		if (result.isErr()) {
+			if (result.error instanceof InvalidResetTokenError) {
+				throw new UnprocessableEntityException(
+					'Invalid or expired reset token'
+				);
+			}
+			if (result.error instanceof RateLimitedError) {
+				throw new HttpException(
+					result.error.message,
+					HttpStatus.TOO_MANY_REQUESTS
+				);
+			}
+			throw new InternalServerErrorException('Failed to reset password');
+		}
+
+		return { message: 'Password reset successfully' };
 	}
 
 	private setSessionCookie(reply: FastifyReply, sessionId: string) {
