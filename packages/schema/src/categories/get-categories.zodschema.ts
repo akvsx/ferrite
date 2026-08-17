@@ -8,11 +8,11 @@ export const GetCategoriesQuerySchema = PaginationInputSchema.extend({
 
 export type GetCategoriesQuery = z.infer<typeof GetCategoriesQuerySchema>;
 
-export const ListCategoriesResponseSchema = z.object({
+export const PaginatedCategoryResponseSchema = z.object({
 	items: z.array(CategorySchema),
 	nextCursor: z.string().optional(),
 });
 
-export type ListCategoriesResponse = z.infer<
-	typeof ListCategoriesResponseSchema
+export type PaginatedCategoryResponse = z.infer<
+	typeof PaginatedCategoryResponseSchema
 >;
