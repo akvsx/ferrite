@@ -15,15 +15,25 @@ export const Pagination = createParamDecorator(
 		const request = ctx.switchToHttp().getRequest();
 		const { cursor, limit } = request.query;
 
-		if (cursor && typeof cursor === 'string' && !uuidRegex.test(cursor)) {
-			throw new BadRequestException('Validation failed (uuid is expected)');
+		if (cursor !== undefined) {
+			if (typeof cursor !== 'string' || !uuidRegex.test(cursor)) {
+				throw new BadRequestException('Validation failed (uuid is expected)');
+			}
 		}
 
-		const parsedLimit = limit ? parseInt(limit, 10) : 20;
+		let parsedLimit = 20;
+		if (limit !== undefined) {
+			if (typeof limit !== 'string' || !/^\d+$/.test(limit)) {
+				throw new BadRequestException(
+					'Validation failed (numeric limit is expected)'
+				);
+			}
+			parsedLimit = parseInt(limit, 10);
+		}
 
 		return {
-			cursor: cursor as string | undefined,
-			limit: Number.isNaN(parsedLimit) ? 20 : parsedLimit,
+			cursor,
+			limit: parsedLimit,
 		};
 	}
 );
