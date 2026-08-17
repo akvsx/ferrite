@@ -42,7 +42,7 @@ export const categories = pgTable(
 		uniqueIndex('uq_categories_store_slug').on(t.storeId, t.slug),
 		index('idx_categories_store_id').on(t.storeId),
 		index('idx_categories_parent_id').on(t.parentId),
-		index('idx_categories_store_created_at').on(t.storeId, t.createdAt),
+		index('idx_categories_store_created_at').on(t.storeId, t.createdAt, t.id),
 	]
 );
 
