@@ -3,7 +3,7 @@ import { PublicRoute } from '@common/decorators/public-route.decorator';
 import { type ITracer, OTEL_TRACER } from '@core/tracer';
 import type {
 	Category,
-	PaginatedResponse,
+	PaginatedCategoryResponse,
 	PaginationInput,
 } from '@ferrite/schema';
 import {
@@ -44,7 +44,7 @@ export class CategoryStorefrontController {
 	async getCategories(
 		@Param('storeId', ParseUUIDPipe) storeId: string,
 		@Pagination() pagination: PaginationInput
-	): Promise<PaginatedResponse<Category>> {
+	): Promise<PaginatedCategoryResponse> {
 		return this.tracer.withSpan('http.storefront.categories.list', async () => {
 			const result = await this.listCategoriesUc.execute({
 				storeId,

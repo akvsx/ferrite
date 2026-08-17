@@ -11,6 +11,7 @@ import {
 	HttpCode,
 	HttpStatus,
 	Inject,
+	InternalServerErrorException,
 	NotFoundException,
 	Param,
 	ParseUUIDPipe,
@@ -70,7 +71,7 @@ export class CategoryAdminController {
 				if (result.error instanceof CategorySlugInUseError) {
 					throw new BadRequestException(result.error.message);
 				}
-				throw new BadRequestException('Failed to create category');
+				throw new InternalServerErrorException('Failed to create category');
 			}
 			return result.value;
 		});
@@ -98,7 +99,7 @@ export class CategoryAdminController {
 				if (result.error instanceof CategorySlugInUseError) {
 					throw new BadRequestException(result.error.message);
 				}
-				throw new BadRequestException('Failed to update category');
+				throw new InternalServerErrorException('Failed to update category');
 			}
 			return result.value;
 		});
@@ -122,7 +123,7 @@ export class CategoryAdminController {
 				if (result.error instanceof CategoryNotFoundError) {
 					throw new NotFoundException(result.error.message);
 				}
-				throw new BadRequestException('Failed to delete category');
+				throw new InternalServerErrorException('Failed to delete category');
 			}
 		});
 	}
