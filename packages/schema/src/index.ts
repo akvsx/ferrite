@@ -1,3 +1,7 @@
+export * from './categories/category.zodschema';
+export * from './categories/create-category.zodschema';
+export * from './categories/get-categories.zodschema';
+export * from './categories/update-category.zodschema';
 export * from './common/pagination.zodschema';
 export * from './currencies/create-currency.zodschema';
 export * from './currencies/get-currencies.zodschema';

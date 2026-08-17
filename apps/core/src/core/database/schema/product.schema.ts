@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm';
 import {
 	boolean,
+	check,
 	decimal,
 	index,
 	integer,
@@ -136,6 +137,12 @@ export const productVariants = pgTable(
 		// Globally unique SKU
 		uniqueIndex('uq_product_variants_sku').on(t.sku),
 		index('idx_product_variants_product_id').on(t.productId),
+		// Price invariants
+		check('chk_product_variants_price_positive', sql`${t.price} >= 0`),
+		check(
+			'chk_product_variants_cost_price_positive',
+			sql`${t.costPrice} IS NULL OR ${t.costPrice} >= 0`
+		),
 	]
 );
 

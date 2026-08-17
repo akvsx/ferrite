@@ -19,7 +19,8 @@
 		"test:e2e": "jest --config ./test/jest-e2e.json --forceExit",
 		"db:generate": "drizzle-kit generate",
 		"db:migrate": "drizzle-kit migrate",
-		"db:studio": "drizzle-kit studio --verbose"
+		"db:studio": "drizzle-kit studio --verbose",
+		"db:dbml": "ts-node -r tsconfig-paths/register src/generate-dbml.ts"
 	},
 	"dependencies": {
 		"@clerk/backend": "^3.4.14",

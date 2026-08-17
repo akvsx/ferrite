@@ -5,6 +5,7 @@ import { ZodSerializationExceptionFilter } from '@common/filters/zod-serializati
 import { CoreModules } from '@core/core.module';
 import { AppLogger } from '@core/logger/logger.service';
 import { AuthModule } from '@modules/auth/auth.module';
+import { CategoriesModule } from '@modules/categories/categories.module';
 import { CurrencyModule } from '@modules/currency';
 import { HealthModule } from '@modules/health/health.module';
 import { OnboardingModule } from '@modules/onboarding/onboarding.module';
@@ -52,8 +53,8 @@ import { ZodSerializerInterceptor, ZodValidationPipe } from 'nestjs-zod';
 		UsersModule,
 		OnboardingModule,
 		NotificationsModule,
+		CategoriesModule,
 		StorefrontUsersModule,
-
 		RouterModule.register([
 			{
 				path: '/stores/:storeId',
