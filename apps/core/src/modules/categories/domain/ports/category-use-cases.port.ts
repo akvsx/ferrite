@@ -30,7 +30,7 @@ export interface IGetCategoryUseCase
 	extends IUseCase<
 		{ id: string; storeId: string },
 		Category,
-		CategoryNotFoundError
+		CategoryNotFoundError | Error
 	> {}
 
 export const LIST_CATEGORIES_UC = Symbol('IListCategoriesUseCase');

@@ -1,6 +1,6 @@
 import type { PaginatedResponse } from '@ferrite/schema/common/pagination.zodschema';
 import type { SQL } from 'drizzle-orm';
-import { and, asc, gt, sql } from 'drizzle-orm';
+import { and, asc, sql } from 'drizzle-orm';
 import type { PgColumn, PgTable } from 'drizzle-orm/pg-core';
 
 // ─────────────────────────────────────────
@@ -35,13 +35,16 @@ export const cursorPaginationClauses = (opts: CursorPaginationOpts) => {
 
 	const conditions: SQL[] = [...filters];
 	if (cursor) {
-		const cursorSubquery = sql`(SELECT ${sortColumn} FROM ${table} WHERE ${idColumn} = ${cursor})`;
-		conditions.push(gt(sortColumn, cursorSubquery));
+		const filterSql = filters.length > 0 ? sql` AND ${and(...filters)}` : sql``;
+		const cursorSubquery = sql`(SELECT ${sortColumn} FROM ${table} WHERE ${idColumn} = ${cursor}${filterSql})`;
+		conditions.push(
+			sql`(${sortColumn}, ${idColumn}) > (${cursorSubquery}, ${cursor})`
+		);
 	}
 
 	return {
 		where: conditions.length > 0 ? and(...conditions) : undefined,
-		orderBy: asc(sortColumn),
+		orderBy: [asc(sortColumn), asc(idColumn)],
 		queryLimit: limit + 1,
 	};
 };
