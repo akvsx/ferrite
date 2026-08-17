@@ -184,6 +184,7 @@ import { DrizzleStorePermissionRepository } from './infrastructure/persistance/r
 		CHECK_STORE_PERMISSION_UC,
 		StorePermissionGuard,
 		INITIALIZE_STORE_ORCHESTRATOR_UC,
+		GET_STORE_CONFIG_UC,
 	],
 })
 export class StoreModule {}
