@@ -17,18 +17,25 @@ import {
 	type ISendVerificationEmail,
 	STOREFRONT_SEND_VERIFICATION_EMAIL_UC,
 } from '../../domain/ports/email-verification-usecase.port';
+import {
+	type IRateLimiter,
+	RATE_LIMITER,
+	type RateLimitConfig,
+} from '../../domain/ports/rate-limiter.port';
 
 @Injectable()
 export class ResendVerificationEmailUseCase
 	implements IResendVerificationEmail
 {
 	private readonly resendCooldownMs: number;
+	private readonly redisRateLimitConfig: RateLimitConfig;
 
 	constructor(
 		@Inject(STOREFRONT_EMAIL_VERIFICATION_REPOSITORY)
 		private readonly verificationRepo: IStorefrontEmailVerificationRepository,
 		@Inject(STOREFRONT_SEND_VERIFICATION_EMAIL_UC)
 		private readonly sendVerificationEmail: ISendVerificationEmail,
+		@Inject(RATE_LIMITER) private readonly rateLimiter: IRateLimiter,
 		@Inject(OTEL_TRACER) private readonly tracer: ITracer,
 		private readonly logger: AppLogger,
 		config: ConfigService
@@ -37,6 +44,12 @@ export class ResendVerificationEmailUseCase
 		const ferriteConfig = config.getOrThrow<FerriteConfig>('ferrite');
 		this.resendCooldownMs =
 			ferriteConfig.storefrontAuth.rateLimiting.resendCooldownMs;
+		this.redisRateLimitConfig = {
+			key: '', // set dynamically per request
+			...ferriteConfig.storefrontAuth.rateLimiting.verifyEmail,
+			// Same cap as SendVerificationEmailUseCase — 1 email per window
+			maxAttempts: 1,
+		};
 	}
 
 	async execute(
@@ -46,7 +59,17 @@ export class ResendVerificationEmailUseCase
 			'use-case.resend-verification-email',
 			async () => {
 				try {
-					// DB driven rate limit check.
+					// Redis abuse-protection gate (shared key with SendVerificationEmailUseCase)
+					const limit = await this.rateLimiter.check({
+						...this.redisRateLimitConfig,
+						key: `storefront-auth:send-verification-email:${input.storeId}:${input.userId}`,
+					});
+
+					if (!limit.allowed) {
+						return err(new RateLimitedError());
+					}
+
+					// DB driven rate limit check — provides retryAfterSec for UX.
 					const existing = await this.verificationRepo.findMostRecentByUserId(
 						input.storeId,
 						input.userId
