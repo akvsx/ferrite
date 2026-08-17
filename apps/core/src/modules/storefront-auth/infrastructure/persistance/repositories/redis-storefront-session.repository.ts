@@ -1,4 +1,3 @@
-import { randomBytes } from 'node:crypto';
 import type { FerriteConfig } from '@core/config/ferrite.schema';
 import { AppLogger } from '@core/logger/logger.service';
 import { type ITracer, OTEL_TRACER } from '@core/tracer';
@@ -7,6 +6,7 @@ import type {
 	StorefrontSession,
 } from '@ferrite/schema/storefront-auth/session.zodschema';
 import { storefrontSessionSchema } from '@ferrite/schema/storefront-auth/session.zodschema';
+import { generateToken } from '@libs/auth/generate-token';
 import type { IStorefrontSessionRepository } from '@modules/storefront-auth/domain/ports/storefront-session-repository.port';
 import { STOREFRONT_REDIS } from '@modules/storefront-auth/infrastructure/redis/redis.provider';
 import { Inject, Injectable } from '@nestjs/common';
@@ -48,7 +48,7 @@ export class RedisStorefrontSessionRepository
 
 	async create(input: NewStorefrontSession): Promise<StorefrontSession> {
 		return this.tracer.withSpan('storefront_auth.session.create', async () => {
-			const id = randomBytes(20).toString('hex');
+			const id = generateToken();
 			const createdAt = new Date().toISOString();
 
 			const sessionData: Record<string, string> = {
@@ -227,6 +227,16 @@ export class RedisStorefrontSessionRepository
 			}
 
 			return sessions;
+		});
+	}
+
+	async countByUserIdAndStoreId(
+		userId: string,
+		storeId: string
+	): Promise<number> {
+		return this.tracer.withSpan('storefront_auth.session.count', async () => {
+			const uKey = userSessionsKey(storeId, userId);
+			return this.redis.scard(uKey);
 		});
 	}
 }
