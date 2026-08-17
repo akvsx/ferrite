@@ -501,4 +501,27 @@ export class DrizzleStorefrontUserRepository
 					)
 		);
 	}
+
+	async updatePasswordHash(
+		id: string,
+		storeId: string,
+		passwordHash: string,
+		tx?: ITransactionContext
+	): Promise<void> {
+		return this.tracer.withSpan(
+			'storefront_auth.user_repository.updatePasswordHash',
+			async () => {
+				const executor = tx ? DrizzleUnitOfWork.unwrap(tx) : this.db;
+				await executor
+					.update(storefrontUsers)
+					.set({ passwordHash, updatedAt: new Date() })
+					.where(
+						and(
+							eq(storefrontUsers.id, id),
+							eq(storefrontUsers.storeId, storeId)
+						)
+					);
+			}
+		);
+	}
 }
