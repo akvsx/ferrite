@@ -7,6 +7,7 @@ import type { InvalidCredentialsError } from '../errors/invalid-credentials.erro
 import { InvalidLoginMethodError } from '../errors/invalid-login-method.error';
 import type { MfaRequiredError } from '../errors/mfa-required.error';
 import type { RateLimitedError } from '../errors/rate-limited.error';
+import type { SessionLimitExceededError } from '../errors/session-limit-exceeded.error';
 
 export const STOREFRONT_LOGIN_UC = Symbol('STOREFRONT_LOGIN_UC');
 
@@ -30,6 +31,7 @@ export type LoginError =
 	| AccountLockedError
 	| RateLimitedError
 	| MfaRequiredError
+	| SessionLimitExceededError
 	| Error;
 
 export type IStorefrontLoginUser = IUseCase<

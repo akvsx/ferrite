@@ -25,11 +25,10 @@ export interface ISendVerificationEmail {
 	): Promise<Result<void, Error | IncompleteConfigurationError>>;
 }
 
-export interface VerifyEmailInput {
+import type { StorefrontVerifyEmail } from '@ferrite/schema/storefront-auth/verify-email.zodschema';
+
+export interface VerifyEmailInput extends StorefrontVerifyEmail {
 	storeId: string;
-	userId: string;
-	/** Raw token received from the email link */
-	token: string;
 }
 
 export interface IVerifyEmail {
