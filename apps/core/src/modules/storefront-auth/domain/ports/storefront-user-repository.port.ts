@@ -60,6 +60,13 @@ export interface IStorefrontUserRepository {
 		tx?: ITransactionContext
 	): Promise<void>;
 
+	updatePasswordHash(
+		id: string,
+		storeId: string,
+		passwordHash: string,
+		tx?: ITransactionContext
+	): Promise<void>;
+
 	updateLastLoginAt(
 		id: string,
 		storeId: string,
