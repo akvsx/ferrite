@@ -5,7 +5,7 @@ import { DrizzleUnitOfWork } from '@core/database/drizzle-unit-of-work';
 import { storefrontPasswordResets } from '@core/database/schema/storefront-user.schema';
 import { type ITracer, OTEL_TRACER } from '@core/tracer';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, eq, isNull, sql } from 'drizzle-orm';
+import { and, eq, gt, isNull, sql } from 'drizzle-orm';
 import type {
 	IStorefrontPasswordResetRepository,
 	StorefrontPasswordReset,
@@ -90,12 +90,21 @@ export class DrizzlePasswordResetRepository
 			async () => {
 				const executor = tx ? DrizzleUnitOfWork.unwrap(tx) : this.db;
 
-				await executor
-					.update(storefrontPasswordResets)
-					.set({ usedAt: new Date() })
-					.where(eq(storefrontPasswordResets.id, id));
+				const now = new Date();
 
-				return true;
+				const updated = await executor
+					.update(storefrontPasswordResets)
+					.set({ usedAt: now })
+					.where(
+						and(
+							eq(storefrontPasswordResets.id, id),
+							isNull(storefrontPasswordResets.usedAt),
+							gt(storefrontPasswordResets.expiresAt, now)
+						)
+					)
+					.returning({ id: storefrontPasswordResets.id });
+
+				return updated.length === 1;
 			}
 		);
 	}
