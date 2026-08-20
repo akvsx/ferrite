@@ -9,6 +9,10 @@ import {
 	STOREFRONT_PASSWORD_HASHER,
 } from '../../domain/ports/password-hasher.port';
 import {
+	type IStorefrontSessionRepository,
+	STOREFRONT_SESSION_REPOSITORY,
+} from '../../domain/ports/storefront-session-repository.port';
+import {
 	type IStorefrontUserRepository,
 	STOREFRONT_USER_REPOSITORY,
 } from '../../domain/ports/storefront-user-repository.port';
@@ -23,6 +27,8 @@ export class UpdatePasswordUseCase implements IStorefrontUpdatePassword {
 	constructor(
 		@Inject(STOREFRONT_USER_REPOSITORY)
 		private readonly userRepo: IStorefrontUserRepository,
+		@Inject(STOREFRONT_SESSION_REPOSITORY)
+		private readonly sessionRepo: IStorefrontSessionRepository,
 		@Inject(STOREFRONT_PASSWORD_HASHER)
 		private readonly hasher: IStorefrontPasswordHasher,
 		@Inject(OTEL_TRACER) private readonly tracer: ITracer,
@@ -71,6 +77,8 @@ export class UpdatePasswordUseCase implements IStorefrontUpdatePassword {
 				newPasswordHash,
 				input.tx
 			);
+
+			await this.sessionRepo.deleteAllByUserId(user.id, input.storeId);
 
 			this.logger.debug(
 				`Password updated for user ${user.id} in store ${input.storeId}`

@@ -23,6 +23,10 @@ import type {
 	ResetPasswordInput,
 } from '../../domain/ports/reset-password-usecase.port';
 import {
+	type IStorefrontSessionRepository,
+	STOREFRONT_SESSION_REPOSITORY,
+} from '../../domain/ports/storefront-session-repository.port';
+import {
 	type IStorefrontUserRepository,
 	STOREFRONT_USER_REPOSITORY,
 } from '../../domain/ports/storefront-user-repository.port';
@@ -34,6 +38,8 @@ export class ResetPasswordUseCase implements IStorefrontResetPassword {
 		private readonly resetRepo: IStorefrontPasswordResetRepository,
 		@Inject(STOREFRONT_USER_REPOSITORY)
 		private readonly userRepo: IStorefrontUserRepository,
+		@Inject(STOREFRONT_SESSION_REPOSITORY)
+		private readonly sessionRepo: IStorefrontSessionRepository,
 		@Inject(STOREFRONT_PASSWORD_HASHER)
 		private readonly hasher: IStorefrontPasswordHasher,
 		@Inject(OTEL_TRACER) private readonly tracer: ITracer,
@@ -49,33 +55,52 @@ export class ResetPasswordUseCase implements IStorefrontResetPassword {
 		return this.tracer.withSpan('storefront_auth.reset_password', async () => {
 			const tokenHash = createHash('sha256').update(input.token).digest('hex');
 
-			return this.uow.execute(async (txn: ITransactionContext) => {
-				const resetRecord = await this.resetRepo.findValidByTokenHash(
-					tokenHash,
-					txn
-				);
+			let committedUserId: string | undefined;
 
-				if (!resetRecord || resetRecord.storeId !== input.storeId) {
-					return err(new InvalidResetTokenError());
+			// write the changes in transaction
+			const result = await this.uow.execute(
+				async (
+					txn: ITransactionContext
+				): Promise<Result<void, ResetPasswordError>> => {
+					const resetRecord = await this.resetRepo.findValidByTokenHash(
+						tokenHash,
+						txn
+					);
+
+					if (!resetRecord || resetRecord.storeId !== input.storeId) {
+						return err(new InvalidResetTokenError());
+					}
+
+					const consumed = await this.resetRepo.markAsUsed(resetRecord.id, txn);
+					if (!consumed) return err(new InvalidResetTokenError());
+
+					const newPasswordHash = await this.hasher.hash(input.newPassword);
+
+					await this.userRepo.updatePasswordHash(
+						resetRecord.userId,
+						input.storeId,
+						newPasswordHash,
+						txn
+					);
+
+					this.logger.debug(
+						`Password reset successfully for user ${resetRecord.userId}`
+					);
+
+					committedUserId = resetRecord.userId;
+					return ok(undefined);
 				}
+			);
 
-				await this.resetRepo.markAsUsed(resetRecord.id, txn);
-
-				const newPasswordHash = await this.hasher.hash(input.newPassword);
-
-				await this.userRepo.updatePasswordHash(
-					resetRecord.userId,
-					input.storeId,
-					newPasswordHash,
-					txn
+			// clear the sessions
+			if (result.ok && committedUserId) {
+				await this.sessionRepo.deleteAllByUserId(
+					committedUserId,
+					input.storeId
 				);
+			}
 
-				this.logger.debug(
-					`Password reset successfully for user ${resetRecord.userId}`
-				);
-
-				return ok(undefined);
-			});
+			return result.ok ? ok(undefined) : result;
 		});
 	}
 }
