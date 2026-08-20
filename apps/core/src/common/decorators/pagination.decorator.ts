@@ -23,12 +23,22 @@ export const Pagination = createParamDecorator(
 
 		let parsedLimit = 20;
 		if (limit !== undefined) {
-			if (typeof limit !== 'string' || !/^\d+$/.test(limit)) {
+			const parsed = parseInt(limit as string, 10);
+			if (
+				typeof limit !== 'string' ||
+				!Number.isSafeInteger(parsed) ||
+				parsed <= 0
+			) {
 				throw new BadRequestException(
 					'Validation failed (numeric limit is expected)'
 				);
 			}
-			parsedLimit = parseInt(limit, 10);
+			if (parsed > 100) {
+				throw new BadRequestException(
+					'Validation failed (limit must not exceed 100)'
+				);
+			}
+			parsedLimit = parsed;
 		}
 
 		return {
