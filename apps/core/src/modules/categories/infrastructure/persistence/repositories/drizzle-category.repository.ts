@@ -140,7 +140,7 @@ export class DrizzleCategoryRepository implements ICategoryRepository {
 					.select()
 					.from(categories)
 					.where(where)
-					.orderBy(orderBy)
+					.orderBy(...orderBy)
 					.limit(queryLimit);
 
 				return buildPaginatedResponse(

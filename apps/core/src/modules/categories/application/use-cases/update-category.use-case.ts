@@ -1,3 +1,4 @@
+import { isUniqueViolation } from '@common/errors/handlers/pg-errors';
 import { err, ok, type Result } from '@common/interfaces/result.interface';
 import { AppLogger } from '@core/logger/logger.service';
 import { type ITracer, OTEL_TRACER } from '@core/tracer';
@@ -34,7 +35,15 @@ export class UpdateCategoryUseCase implements IUpdateCategoryUseCase {
 				`Updating category ${input.id} for store ${input.storeId}`
 			);
 
-			if (input.data.slug) {
+			const category = await this.categoryRepo.findByIdAndStore(
+				input.id,
+				input.storeId
+			);
+			if (!category) {
+				return err(new CategoryNotFoundError(input.id));
+			}
+
+			if (input.data.slug && input.data.slug !== category.slug) {
 				const existing = await this.categoryRepo.findBySlugAndStore(
 					input.data.slug,
 					input.storeId
@@ -44,17 +53,28 @@ export class UpdateCategoryUseCase implements IUpdateCategoryUseCase {
 				}
 			}
 
-			const updated = await this.categoryRepo.update(
-				input.id,
-				input.storeId,
-				input.data
-			);
+			try {
+				const updated = await this.categoryRepo.update(
+					input.id,
+					input.storeId,
+					input.data
+				);
 
-			if (!updated) {
-				return err(new CategoryNotFoundError(input.id));
+				if (!updated) {
+					return err(new CategoryNotFoundError(input.id));
+				}
+
+				return ok(updated);
+			} catch (error: any) {
+				if (
+					isUniqueViolation(error) &&
+					(error.message?.includes('uq_categories_store_slug') ||
+						error.constraint === 'uq_categories_store_slug')
+				) {
+					return err(new CategorySlugInUseError(input.data.slug!));
+				}
+				throw error;
 			}
-
-			return ok(updated);
 		});
 	}
 }

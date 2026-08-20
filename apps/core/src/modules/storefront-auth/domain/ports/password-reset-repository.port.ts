@@ -34,5 +34,5 @@ export interface IStorefrontPasswordResetRepository {
 		tx?: ITransactionContext
 	): Promise<StorefrontPasswordReset | null>;
 
-	markAsUsed(id: string, tx?: ITransactionContext): Promise<void>;
+	markAsUsed(id: string, tx?: ITransactionContext): Promise<boolean>;
 }

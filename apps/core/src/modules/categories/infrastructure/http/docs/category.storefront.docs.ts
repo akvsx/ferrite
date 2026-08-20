@@ -1,12 +1,17 @@
 import { ApiPagination } from '@common/decorators/pagination.decorator';
 import { applyDecorators } from '@nestjs/common';
 import { ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { PaginatedCategoryResponseDto } from '../dto/paginated-category-response.dto';
 
 export function GetCategoriesDocs() {
 	return applyDecorators(
 		ApiOperation({ summary: 'List categories for a store' }),
 		ApiPagination(),
-		ApiResponse({ status: 200, description: 'Categories retrieved' })
+		ApiResponse({
+			status: 200,
+			description: 'Categories retrieved',
+			type: PaginatedCategoryResponseDto,
+		})
 	);
 }
 

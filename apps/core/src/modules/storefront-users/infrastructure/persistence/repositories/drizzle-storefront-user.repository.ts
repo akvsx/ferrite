@@ -77,7 +77,7 @@ export class DrizzleStorefrontUserRepository
 					.select()
 					.from(storefrontUsers)
 					.where(where)
-					.orderBy(orderBy)
+					.orderBy(...orderBy)
 					.limit(queryLimit);
 
 				return buildPaginatedResponse(

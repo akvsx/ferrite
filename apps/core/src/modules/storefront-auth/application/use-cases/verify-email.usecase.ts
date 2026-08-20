@@ -65,15 +65,6 @@ export class VerifyEmailUseCase implements IVerifyEmail {
 					return err(new RateLimitedError());
 				}
 
-				const existingUser = await this.userRepo.findByIdAndStoreId(
-					input.userId,
-					input.storeId
-				);
-
-				if (existingUser?.emailVerifiedAt !== null) {
-					return err(new EmailAlreadyVerifiedError());
-				}
-
 				const tokenHash = createHash('sha256')
 					.update(input.token)
 					.digest('hex');
@@ -87,6 +78,19 @@ export class VerifyEmailUseCase implements IVerifyEmail {
 
 				if (!verification) {
 					return err(new Error('Invalid or expired verification token'));
+				}
+
+				const existingUser = await this.userRepo.findByIdAndStoreId(
+					input.userId,
+					input.storeId
+				);
+
+				if (!existingUser) {
+					return err(new Error('Invalid or expired verification token'));
+				}
+
+				if (existingUser.emailVerifiedAt !== null) {
+					return err(new EmailAlreadyVerifiedError());
 				}
 
 				// Atomically: mark email verified + delete the verification record

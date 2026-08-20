@@ -23,7 +23,12 @@ export interface IStorefrontSessionRepository {
 		storeId: string
 	): Promise<StorefrontSession[]>;
 
-	/** Count all active sessions for a user within a store */
+	/** Count live (non-expired) sessions for a user within a store.
+	 * Checks each member of the user-session set against its hash key;
+	 * stale IDs whose hashes no longer exist are pruned from the set as a
+	 * side-effect, so the returned count reflects only sessions currently
+	 * alive in Redis.
+	 */
 	countByUserIdAndStoreId(userId: string, storeId: string): Promise<number>;
 
 	/**

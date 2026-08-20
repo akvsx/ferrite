@@ -1,3 +1,4 @@
+import { isUniqueViolation } from '@common/errors/handlers/pg-errors';
 import { err, ok, type Result } from '@common/interfaces/result.interface';
 import { AppLogger } from '@core/logger/logger.service';
 import { type ITracer, OTEL_TRACER } from '@core/tracer';
@@ -39,11 +40,22 @@ export class CreateCategoryUseCase implements ICreateCategoryUseCase {
 				return err(new CategorySlugInUseError(input.data.slug));
 			}
 
-			const category = await this.categoryRepo.create(
-				input.storeId,
-				input.data
-			);
-			return ok(category);
+			try {
+				const category = await this.categoryRepo.create(
+					input.storeId,
+					input.data
+				);
+				return ok(category);
+			} catch (error: any) {
+				if (
+					isUniqueViolation(error) &&
+					(error.message?.includes('uq_categories_store_slug') ||
+						error.constraint === 'uq_categories_store_slug')
+				) {
+					return err(new CategorySlugInUseError(input.data.slug));
+				}
+				throw error;
+			}
 		});
 	}
 }

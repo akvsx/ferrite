@@ -22,6 +22,7 @@ import {
 import { EmailAlreadyVerifiedError } from '@modules/storefront-auth/domain/errors/email-alraedy-vefiried';
 import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { UserNotFoundError } from '@users/domain/errors/user-not-found.error';
 import { RateLimitedError } from '../../domain/errors/rate-limited.error';
 import {
 	type IStorefrontEmailVerificationRepository,
@@ -95,7 +96,11 @@ export class SendVerificationEmailUseCase implements ISendVerificationEmail {
 						input.storeId
 					);
 
-					if (existingUser && existingUser.emailVerifiedAt !== null) {
+					if (!existingUser) {
+						return err(new UserNotFoundError(input.userId));
+					}
+
+					if (existingUser.emailVerifiedAt !== null) {
 						return err(new EmailAlreadyVerifiedError());
 					}
 

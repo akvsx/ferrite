@@ -5,7 +5,7 @@ import { DrizzleUnitOfWork } from '@core/database/drizzle-unit-of-work';
 import { storefrontPasswordResets } from '@core/database/schema/storefront-user.schema';
 import { type ITracer, OTEL_TRACER } from '@core/tracer';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, eq, isNull, sql } from 'drizzle-orm';
+import { and, eq, gt, isNull, sql } from 'drizzle-orm';
 import type {
 	IStorefrontPasswordResetRepository,
 	StorefrontPasswordReset,
@@ -37,6 +37,7 @@ export class DrizzlePasswordResetRepository
 					.where(
 						and(
 							eq(storefrontPasswordResets.userId, data.userId),
+							eq(storefrontPasswordResets.storeId, data.storeId),
 							isNull(storefrontPasswordResets.usedAt)
 						)
 					);
@@ -83,15 +84,27 @@ export class DrizzlePasswordResetRepository
 		);
 	}
 
-	async markAsUsed(id: string, tx?: ITransactionContext): Promise<void> {
+	async markAsUsed(id: string, tx?: ITransactionContext): Promise<boolean> {
 		return this.tracer.withSpan(
 			'storefront_auth.password_reset_repository.markAsUsed',
 			async () => {
 				const executor = tx ? DrizzleUnitOfWork.unwrap(tx) : this.db;
-				await executor
+
+				const now = new Date();
+
+				const updated = await executor
 					.update(storefrontPasswordResets)
-					.set({ usedAt: new Date() })
-					.where(eq(storefrontPasswordResets.id, id));
+					.set({ usedAt: now })
+					.where(
+						and(
+							eq(storefrontPasswordResets.id, id),
+							isNull(storefrontPasswordResets.usedAt),
+							gt(storefrontPasswordResets.expiresAt, now)
+						)
+					)
+					.returning({ id: storefrontPasswordResets.id });
+
+				return updated.length === 1;
 			}
 		);
 	}

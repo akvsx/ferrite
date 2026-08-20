@@ -236,7 +236,48 @@ export class RedisStorefrontSessionRepository
 	): Promise<number> {
 		return this.tracer.withSpan('storefront_auth.session.count', async () => {
 			const uKey = userSessionsKey(storeId, userId);
-			return this.redis.scard(uKey);
+			const sessionIds = await this.redis.smembers(uKey);
+
+			if (sessionIds.length === 0) return 0;
+
+			// Check each member for a live session hash
+			const pipeline = this.redis.pipeline();
+			for (const sid of sessionIds) {
+				pipeline.exists(sessionKey(sid));
+			}
+
+			const results = await pipeline.exec();
+			if (!results) return 0;
+
+			const staleIds: string[] = [];
+			let liveCount = 0;
+
+			for (let i = 0; i < sessionIds.length; i++) {
+				const [err, exists] = results[i];
+				if (err) {
+					this.logger.error(
+						`Error checking session ${sessionIds[i]}`,
+						String(err)
+					);
+					continue;
+				}
+
+				if (exists === 1) {
+					liveCount++;
+				} else {
+					staleIds.push(sessionIds[i]);
+				}
+			}
+
+			// Prune stale IDs from the set
+			if (staleIds.length > 0) {
+				await this.redis.srem(uKey, ...staleIds);
+				this.logger.debug(
+					`Pruned ${staleIds.length} stale session IDs from set userId=${userId}`
+				);
+			}
+
+			return liveCount;
 		});
 	}
 }
