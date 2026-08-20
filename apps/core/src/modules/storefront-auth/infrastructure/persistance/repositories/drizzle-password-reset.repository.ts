@@ -37,6 +37,7 @@ export class DrizzlePasswordResetRepository
 					.where(
 						and(
 							eq(storefrontPasswordResets.userId, data.userId),
+							eq(storefrontPasswordResets.storeId, data.storeId),
 							isNull(storefrontPasswordResets.usedAt)
 						)
 					);
