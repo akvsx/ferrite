@@ -335,6 +335,10 @@ export const UpdatePasswordDocs = () =>
 		ApiResponse({
 			status: 422,
 			description: 'Unprocessable Entity (e.g. invalid current password).',
+		}),
+		ApiResponse({
+			status: 500,
+			description: 'Internal server error.',
 		})
 	);
 
@@ -366,6 +370,10 @@ export const ForgotPasswordDocs = () =>
 		ApiResponse({
 			status: 429,
 			description: 'Too many reset attempts (rate limit exceeded).',
+		}),
+		ApiResponse({
+			status: 500,
+			description: 'Internal server error.',
 		})
 	);
 
@@ -401,5 +409,9 @@ export const ResetPasswordDocs = () =>
 		ApiResponse({
 			status: 429,
 			description: 'Too many reset attempts.',
+		}),
+		ApiResponse({
+			status: 500,
+			description: 'Internal server error.',
 		})
 	);
