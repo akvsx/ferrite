@@ -83,15 +83,18 @@ export class DrizzlePasswordResetRepository
 		);
 	}
 
-	async markAsUsed(id: string, tx?: ITransactionContext): Promise<void> {
+	async markAsUsed(id: string, tx?: ITransactionContext): Promise<boolean> {
 		return this.tracer.withSpan(
 			'storefront_auth.password_reset_repository.markAsUsed',
 			async () => {
 				const executor = tx ? DrizzleUnitOfWork.unwrap(tx) : this.db;
+
 				await executor
 					.update(storefrontPasswordResets)
 					.set({ usedAt: new Date() })
 					.where(eq(storefrontPasswordResets.id, id));
+
+				return true;
 			}
 		);
 	}
