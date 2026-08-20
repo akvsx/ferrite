@@ -12,6 +12,7 @@ import {
 	type IGetStoreInvitationUseCase,
 } from '@modules/store/domain/ports/member-use-cases.port';
 import { StorePermissionGuard } from '@modules/store/infrastructure/http/guards/store-permission.guard';
+import { SkipCsrf } from '@modules/storefront-auth/infrastructure/http/decorators/skip-csrf.decorator';
 import {
 	Controller,
 	ForbiddenException,
@@ -35,7 +36,8 @@ import {
 @ApiTags('Invitations')
 @ApiBearerAuth('swagger-access-token')
 @UseGuards(StorePermissionGuard)
-@Controller('invitations')
+@SkipCsrf()
+@Controller('stores/invitations')
 export class InvitationController {
 	constructor(
 		@Inject(GET_STORE_INVITATION_UC)

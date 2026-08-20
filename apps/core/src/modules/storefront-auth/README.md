@@ -48,3 +48,11 @@ Rate limiting is implemented using a **Sliding Window Algorithm** backed by Redi
 - **Account Lockouts:** Repeated failed login attempts will temporarily lock a user's account. This is tracked persistently in the PostgreSQL database via Drizzle ORM (`storefront_users.failed_login_count` and `storefront_users.locked_until`).
 - **Timing Attack Prevention:** If a user attempts to log in with an email that does not exist, the system still computes a dummy Argon2 hash to ensure the response time is indistinguishable from a valid login attempt.
 - **Strict Tenant Verification:** Redis session lookups actively verify that the `storeId` in the session matches the `storeId` of the current request, preventing cross-tenant cookie injection attacks.
+
+## Password Flow
+
+The module provides a secure, multi-step flow for password management:
+
+1. **Update Password (`PUT /auth/password`)**: Requires an active session. The user must provide their current password (which is verified) and a new password to update their credentials.
+2. **Forgot Password (`POST /auth/password/forgot`)**: A public route that accepts an email address. If the user exists (and is not an SSO-only account), it generates a secure, cryptographically random 32-byte token. The token's SHA-256 hash is stored in the database (`storefront_password_resets`) with a 24-hour expiration, and an email containing the raw token is enqueued. To prevent user enumeration, it always returns a generic success message regardless of whether the email exists. It is heavily rate-limited by IP and email address.
+3. **Reset Password (`POST /auth/password/reset`)**: A public route that accepts the token from the email. It hashes the provided token and checks for a valid, unused record in the database. If valid, the password is updated and the token is marked as used. This route does not require a `userId` because the token itself securely identifies the user.

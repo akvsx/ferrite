@@ -88,7 +88,8 @@ export class DrizzleStorefrontUserRepository
 
 	async findByStoreIdAndEmail(
 		storeId: string,
-		email: string
+		email: string,
+		tx?: ITransactionContext
 	): Promise<StorefrontUser | null> {
 		const normalizedEmail = StorefrontUserMapper.normalizeEmail(email);
 		return traceDbOp(
@@ -96,7 +97,8 @@ export class DrizzleStorefrontUserRepository
 			'db.storefrontUsers.findByStoreIdAndEmail',
 			{ 'db.table': 'storefront_users', 'db.operation': 'select' },
 			async () => {
-				const [user] = await this.typedDb
+				const executor = tx ? DrizzleUnitOfWork.unwrap(tx) : this.typedDb;
+				const [user] = await executor
 					.select()
 					.from(storefrontUsers)
 					.where(
@@ -497,6 +499,29 @@ export class DrizzleStorefrontUserRepository
 							isNull(storefrontUsers.deletedAt)
 						)
 					)
+		);
+	}
+
+	async updatePasswordHash(
+		id: string,
+		storeId: string,
+		passwordHash: string,
+		tx?: ITransactionContext
+	): Promise<void> {
+		return this.tracer.withSpan(
+			'storefront_auth.user_repository.updatePasswordHash',
+			async () => {
+				const executor = tx ? DrizzleUnitOfWork.unwrap(tx) : this.db;
+				await executor
+					.update(storefrontUsers)
+					.set({ passwordHash, updatedAt: new Date() })
+					.where(
+						and(
+							eq(storefrontUsers.id, id),
+							eq(storefrontUsers.storeId, storeId)
+						)
+					);
+			}
 		);
 	}
 }

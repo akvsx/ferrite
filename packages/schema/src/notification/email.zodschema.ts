@@ -5,6 +5,7 @@ export enum EmailTemplate {
 	PASSWORD_RESET = 'password_reset',
 	WELCOME_ABOARD = 'welcome_aboard',
 	STOREFRONT_VERIFY_EMAIL = 'storefront_verify_email',
+	STOREFRONT_PASSWORD_RESET = 'storefront_password_reset',
 }
 export const EmailTransitPayloadSchema = z.object({
 	id: z.string(),

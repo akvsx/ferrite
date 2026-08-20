@@ -310,3 +310,96 @@ export const ResendVerificationEmailDocs = () =>
 			},
 		})
 	);
+
+export const UpdatePasswordDocs = () =>
+	applyDecorators(
+		ApiOperation({ summary: 'Update storefront user password' }),
+		ApiResponse({
+			status: 200,
+			description: 'Password successfully updated.',
+			schema: {
+				type: 'object',
+				properties: {
+					message: { type: 'string', example: 'Password updated successfully' },
+				},
+			},
+		}),
+		ApiResponse({
+			status: 400,
+			description: 'Validation failed or bad request.',
+		}),
+		ApiResponse({
+			status: 401,
+			description: 'Unauthorized.',
+		}),
+		ApiResponse({
+			status: 422,
+			description: 'Unprocessable Entity (e.g. invalid current password).',
+		})
+	);
+
+export const ForgotPasswordDocs = () =>
+	applyDecorators(
+		ApiOperation({ summary: 'Request a password reset email' }),
+		ApiParam({
+			name: 'storeId',
+			description: 'Store ID',
+			type: 'string',
+		}),
+		ApiResponse({
+			status: 200,
+			description: 'If an account exists, a reset email has been sent.',
+			schema: {
+				type: 'object',
+				properties: {
+					message: {
+						type: 'string',
+						example: 'If an account exists, a reset email has been sent',
+					},
+				},
+			},
+		}),
+		ApiResponse({
+			status: 400,
+			description: 'Validation failed or bad request.',
+		}),
+		ApiResponse({
+			status: 429,
+			description: 'Too many reset attempts (rate limit exceeded).',
+		})
+	);
+
+export const ResetPasswordDocs = () =>
+	applyDecorators(
+		ApiOperation({
+			summary: 'Reset storefront user password using reset token',
+		}),
+		ApiParam({
+			name: 'storeId',
+			description: 'Store ID',
+			type: 'string',
+		}),
+		ApiResponse({
+			status: 200,
+			description: 'Password successfully reset.',
+			schema: {
+				type: 'object',
+				properties: {
+					message: { type: 'string', example: 'Password reset successfully' },
+				},
+			},
+		}),
+		ApiResponse({
+			status: 400,
+			description: 'Validation failed or bad request.',
+		}),
+		ApiResponse({
+			status: 422,
+			description:
+				'Unprocessable Entity (e.g. invalid or expired reset token).',
+		}),
+		ApiResponse({
+			status: 429,
+			description: 'Too many reset attempts.',
+		})
+	);

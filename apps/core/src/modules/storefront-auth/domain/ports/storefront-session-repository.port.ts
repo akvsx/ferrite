@@ -23,6 +23,9 @@ export interface IStorefrontSessionRepository {
 		storeId: string
 	): Promise<StorefrontSession[]>;
 
+	/** Count all active sessions for a user within a store */
+	countByUserIdAndStoreId(userId: string, storeId: string): Promise<number>;
+
 	/**
 	 * Sliding-window renewal: check PTTL and PEXPIRE if past renewal threshold.
 	 * O(1) Redis ops; at most one write per renewal window.

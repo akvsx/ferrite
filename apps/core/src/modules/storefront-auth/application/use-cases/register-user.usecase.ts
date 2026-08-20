@@ -1,3 +1,4 @@
+import { isFkViolation } from '@common/errors/handlers/pg-errors';
 import { err, ok, type Result } from '@common/interfaces/result.interface';
 import {
 	type IUnitOfWork,
@@ -5,11 +6,15 @@ import {
 } from '@common/interfaces/unit-of-work.interface';
 import { AppLogger } from '@core/logger/logger.service';
 import { type ITracer, OTEL_TRACER } from '@core/tracer';
-import { StorefrontUserResponse } from '@ferrite/schema/storefront-auth/storefront-user.zodschema';
 import {
 	type ISendVerificationEmail,
 	STOREFRONT_SEND_VERIFICATION_EMAIL_UC,
 } from '@modules/storefront-auth/domain/ports/email-verification-usecase.port';
+import {
+	type IStorefrontLoginUser,
+	type LoginResult,
+	STOREFRONT_LOGIN_UC,
+} from '@modules/storefront-auth/domain/ports/login-usecase.port';
 import {
 	type IStorefrontPasswordHasher,
 	STOREFRONT_PASSWORD_HASHER,
@@ -19,9 +24,9 @@ import {
 	type IStorefrontUserRepository,
 	STOREFRONT_USER_REPOSITORY,
 } from '@modules/storefront-auth/domain/ports/storefront-user-repository.port';
-import { StorefrontUserMapper } from '@modules/storefront-auth/infrastructure/persistance/mappers/storefront-user.mapper';
 import { Inject, Injectable } from '@nestjs/common';
 import { IncompleteConfigurationError } from '@store/domain/errors/incomplete-configuration.error';
+import { StoreNotFoundError } from '@store/domain/errors/store-not-found.error';
 import { EmailAlreadyRegisteredError } from '../../domain/errors/email-already-registered.error';
 
 @Injectable()
@@ -35,7 +40,9 @@ export class RegisterUserUseCase implements IStorefrontRegisterUser {
 		private readonly hasher: IStorefrontPasswordHasher,
 		@Inject(UNIT_OF_WORK) private readonly uow: IUnitOfWork,
 		@Inject(STOREFRONT_SEND_VERIFICATION_EMAIL_UC)
-		private readonly sendVerificationEmail: ISendVerificationEmail
+		private readonly sendVerificationEmail: ISendVerificationEmail,
+		@Inject(STOREFRONT_LOGIN_UC)
+		private readonly loginUseCase: IStorefrontLoginUser
 	) {
 		this.logger.setContext(this.constructor.name);
 	}
@@ -46,9 +53,11 @@ export class RegisterUserUseCase implements IStorefrontRegisterUser {
 		email: string;
 		password: string;
 		termsAndConditions: boolean;
+		ipAddress: string;
+		userAgent: string;
 	}): Promise<
 		Result<
-			StorefrontUserResponse,
+			LoginResult,
 			EmailAlreadyRegisteredError | IncompleteConfigurationError | Error
 		>
 	> {
@@ -81,15 +90,30 @@ export class RegisterUserUseCase implements IStorefrontRegisterUser {
 						throw emailResult.error;
 					}
 
-					return user;
+					const loginResult = await this.loginUseCase.execute({
+						storeId: input.storeId,
+						email: input.email,
+						password: input.password,
+						ipAddress: input.ipAddress,
+						userAgent: input.userAgent,
+						tx,
+					});
+
+					if (loginResult.isErr()) {
+						throw loginResult.error;
+					}
+
+					return loginResult.value;
 				});
 
-				this.logger.debug(
-					`User registered and verification email enqueued: userId=${result.id}`
-				);
+				this.logger.debug('User registered and verification email sent');
 
-				return ok(StorefrontUserMapper.formatResponse(result));
+				return ok(result);
 			} catch (error: unknown) {
+				if (isFkViolation(error)) {
+					return err(new StoreNotFoundError(input.storeId));
+				}
+
 				const normalized =
 					error instanceof Error ? error : new Error(String(error));
 				this.logger.error('Failed to register user', normalized.message);

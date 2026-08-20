@@ -1,4 +1,5 @@
 import { RequirePermission } from '@common/decorators/require-permission.decorator';
+import { SkipCsrf } from '@modules/storefront-auth/infrastructure/http/decorators/skip-csrf.decorator';
 import {
 	Body,
 	Controller,
@@ -28,8 +29,9 @@ import {
 
 @ApiTags('Store Config')
 @ApiBearerAuth('swagger-access-token')
-@Controller(':storeId/config')
 @UseGuards(StorePermissionGuard)
+@SkipCsrf()
+@Controller('stores/:storeId/config')
 export class ConfigController {
 	constructor(
 		@Inject(GET_STORE_CONFIG_UC)

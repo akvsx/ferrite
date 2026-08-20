@@ -35,6 +35,7 @@ import {
 	type IUpdateRolePermissionsUseCase,
 	UPDATE_ROLE_PERMISSIONS_UC,
 } from '@modules/store/domain/ports/role-use-cases.port';
+import { SkipCsrf } from '@modules/storefront-auth/infrastructure/http/decorators/skip-csrf.decorator';
 import {
 	Body,
 	ConflictException,
@@ -71,6 +72,7 @@ import {
 @ApiTags('Store Roles')
 @ApiBearerAuth('swagger-access-token')
 @UseGuards(StorePermissionGuard)
+@SkipCsrf()
 @Controller('stores/:storeId/roles')
 export class RoleController {
 	constructor(

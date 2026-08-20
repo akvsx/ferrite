@@ -7,6 +7,7 @@ import {
 import type { FerriteConfig } from '@core/config/ferrite.schema';
 import { AppLogger } from '@core/logger/logger.service';
 import { type ITracer, OTEL_TRACER } from '@core/tracer';
+import { EmailAlreadyVerifiedError } from '@modules/storefront-auth/domain/errors/email-alraedy-vefiried';
 import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { RateLimitedError } from '../../domain/errors/rate-limited.error';
@@ -46,7 +47,7 @@ export class VerifyEmailUseCase implements IVerifyEmail {
 		this.logger.setContext(this.constructor.name);
 		const ferriteConfig = config.getOrThrow<FerriteConfig>('ferrite');
 		this.rateLimitConfig = {
-			key: '', // set dynamically
+			key: '', //? set dynamically
 			...ferriteConfig.storefrontAuth.rateLimiting.verifyEmail,
 		};
 	}
@@ -62,6 +63,15 @@ export class VerifyEmailUseCase implements IVerifyEmail {
 
 				if (!limit.allowed) {
 					return err(new RateLimitedError());
+				}
+
+				const existingUser = await this.userRepo.findByIdAndStoreId(
+					input.userId,
+					input.storeId
+				);
+
+				if (existingUser?.emailVerifiedAt !== null) {
+					return err(new EmailAlreadyVerifiedError());
 				}
 
 				const tokenHash = createHash('sha256')

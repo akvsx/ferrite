@@ -14,6 +14,9 @@ This project follows strict architectural conventions. Before modifying or gener
 - **Repositories:** Load `nest-repository` when defining repositories for external dependencies (DB, services).
 - **Database Schemas:** Load `drizzle-schemas` when defining new database tables, modifying relations, or writing DB schema tests.
 - **Roles & Permissions:** Load `roles-and-permissions` when dealing with admin routes, authorization guards, platform RBAC, or store-level granular permissions.
+- **Unit of Work:** Load `unit-of-work` when working with database transactions, atomicity, or coordinating multiple repository calls within a use case.
+
+Note: Skills aren't mutually exclusive most non-trivial tasks touch several layers. Load accordingly.
 
 ## Module Context
 

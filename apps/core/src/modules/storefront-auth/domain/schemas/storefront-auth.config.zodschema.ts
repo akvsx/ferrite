@@ -122,6 +122,7 @@ const sessionSchema = z.object({
 	renewalThreshold: z.coerce.number().positive().max(1).default(0.5),
 	/** Cookie name for the session ID. Default: __Host-session-token */
 	cookieName: z.string().default('__Host-session-token'),
+	sessionLimit: z.number().int().positive().default(10),
 });
 
 const cstfTokenSchema = z.object({
@@ -146,6 +147,12 @@ const securitySchema = z.object({
 		.int()
 		.positive()
 		.default(15 * 60 * 1000),
+	/** Time to live for password reset tokens in milliseconds. Default: 1 hour */
+	passwordResetTokenTtlMs: z.coerce
+		.number()
+		.int()
+		.positive()
+		.default(60 * 60 * 1000),
 });
 
 const storefrontAuthSchema = z.object({

@@ -1,3 +1,4 @@
+import type { ITransactionContext } from '@common/interfaces/unit-of-work.interface';
 import type { IUseCase } from '@common/interfaces/use-case.interface';
 import type { StorefrontSession } from '@ferrite/schema/storefront-auth/session.zodschema';
 import type { StorefrontUserResponse } from '@ferrite/schema/storefront-auth/storefront-user.zodschema';
@@ -6,6 +7,7 @@ import type { InvalidCredentialsError } from '../errors/invalid-credentials.erro
 import { InvalidLoginMethodError } from '../errors/invalid-login-method.error';
 import type { MfaRequiredError } from '../errors/mfa-required.error';
 import type { RateLimitedError } from '../errors/rate-limited.error';
+import type { SessionLimitExceededError } from '../errors/session-limit-exceeded.error';
 
 export const STOREFRONT_LOGIN_UC = Symbol('STOREFRONT_LOGIN_UC');
 
@@ -15,6 +17,7 @@ export interface LoginInput {
 	password: string;
 	ipAddress: string;
 	userAgent: string;
+	tx?: ITransactionContext;
 }
 
 export interface LoginResult {
@@ -28,6 +31,7 @@ export type LoginError =
 	| AccountLockedError
 	| RateLimitedError
 	| MfaRequiredError
+	| SessionLimitExceededError
 	| Error;
 
 export type IStorefrontLoginUser = IUseCase<

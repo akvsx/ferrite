@@ -3,7 +3,7 @@ name: nest-usecases
 description: >
   Guidance for writing Application Use Cases in the Ferrite repository. Use this skill 
   when writing, debugging, or reviewing use cases that orchestrate business logic. 
-  Trigger for "usecase", "use case", "orchestration", "tracing", "debug logging", "execute".
+  Trigger for "usecase", "use case", "orchestration", "tracing", "debug logging", "execute() method".
 ---
 
 # Application Use Cases

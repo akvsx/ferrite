@@ -13,7 +13,8 @@ export interface IStorefrontUserRepository {
 	): Promise<StorefrontUser>;
 	findByStoreIdAndEmail(
 		storeId: string,
-		email: string
+		email: string,
+		tx?: ITransactionContext
 	): Promise<StorefrontUser | null>;
 
 	findByIdAndStoreId(
@@ -56,6 +57,13 @@ export interface IStorefrontUserRepository {
 	markEmailVerified(
 		id: string,
 		storeId: string,
+		tx?: ITransactionContext
+	): Promise<void>;
+
+	updatePasswordHash(
+		id: string,
+		storeId: string,
+		passwordHash: string,
 		tx?: ITransactionContext
 	): Promise<void>;
 

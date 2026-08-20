@@ -3,6 +3,7 @@ import type { FerriteConfig } from '@core/config/ferrite.schema';
 import { AppLogger } from '@core/logger/logger.service';
 import { type ITracer, OTEL_TRACER } from '@core/tracer';
 import { InvalidLoginMethodError } from '@modules/storefront-auth/domain/errors/invalid-login-method.error';
+import { SessionLimitExceededError } from '@modules/storefront-auth/domain/errors/session-limit-exceeded.error';
 import type {
 	IStorefrontLoginUser,
 	LoginError,
@@ -37,6 +38,7 @@ import { RateLimitedError } from '../../domain/errors/rate-limited.error';
 export class LoginUseCase implements IStorefrontLoginUser {
 	private readonly lockoutThreshold: number;
 	private readonly lockoutDurationMs: number;
+	private readonly sessionLimit: number;
 
 	constructor(
 		private readonly logger: AppLogger,
@@ -56,13 +58,14 @@ export class LoginUseCase implements IStorefrontLoginUser {
 			ferriteConfig.storefrontAuth.security.lockoutThreshold;
 		this.lockoutDurationMs =
 			ferriteConfig.storefrontAuth.security.lockoutDurationMs;
+		this.sessionLimit = ferriteConfig.storefrontAuth.session.sessionLimit;
 	}
 
 	async execute(input: LoginInput): Promise<Result<LoginResult, LoginError>> {
 		return this.tracer.withSpan(
 			'storefront_auth.login',
 			async () => {
-				// 1. Rate limit — per account
+				// Rate limit — per account
 				const accountRl = await this.rateLimiter.check({
 					key: `rl:login:${input.storeId}:${input.email.toLowerCase()}`,
 					windowMs: this.lockoutDurationMs,
@@ -72,7 +75,7 @@ export class LoginUseCase implements IStorefrontLoginUser {
 					return err(new RateLimitedError());
 				}
 
-				// 2. Rate limit — per IP
+				// Rate limit — per IP
 				const ipRl = await this.rateLimiter.check({
 					key: `rl:login:ip:${input.ipAddress}`,
 					windowMs: this.lockoutDurationMs,
@@ -82,10 +85,11 @@ export class LoginUseCase implements IStorefrontLoginUser {
 					return err(new RateLimitedError());
 				}
 
-				// 3. Lookup user
+				// Lookup user
 				const user = await this.userRepo.findByStoreIdAndEmail(
 					input.storeId,
-					input.email
+					input.email,
+					input.tx
 				);
 
 				if (!user) {
@@ -94,17 +98,17 @@ export class LoginUseCase implements IStorefrontLoginUser {
 					return err(new InvalidCredentialsError());
 				}
 
-				// 4. Check account lockout
+				// Check account lockout
 				if (user.lockedUntil && user.lockedUntil > new Date()) {
 					return err(new AccountLockedError(user.lockedUntil));
 				}
 
-				// 5. SSO-only account (no password set) — cannot login with password
+				// SSO-only account (no password set) — cannot login with password
 				if (!user.passwordHash) {
 					return err(new InvalidLoginMethodError());
 				}
 
-				// 6. Verify password
+				// Verify password
 				const passwordValid = await this.hasher.isValid(
 					input.password,
 					user.passwordHash
@@ -114,7 +118,8 @@ export class LoginUseCase implements IStorefrontLoginUser {
 					// Increment failed login counter and get post-increment count
 					const newFailedCount = await this.userRepo.incrementFailedLogins(
 						user.id,
-						input.storeId
+						input.storeId,
+						input.tx
 					);
 
 					// Check if lockout threshold is reached
@@ -123,7 +128,8 @@ export class LoginUseCase implements IStorefrontLoginUser {
 						await this.userRepo.updateLockedUntil(
 							user.id,
 							input.storeId,
-							lockedUntil
+							lockedUntil,
+							input.tx
 						);
 						this.logger.warn(
 							`Account locked: userId=${user.id}, failedCount=${newFailedCount}, until=${lockedUntil.toISOString()}`
@@ -133,18 +139,33 @@ export class LoginUseCase implements IStorefrontLoginUser {
 					return err(new InvalidCredentialsError());
 				}
 
-				// 7. Check MFA requirement
+				// Check MFA requirement,
+				// TODO: Implement MFA
 				if (user.mfaEnabled) {
 					// TODO: Generate a short-lived MFA challenge token
 					return err(new MfaRequiredError('mfa-challenge-placeholder'));
 				}
 
-				// 8. Reset failed login count on successful auth
+				// Reset failed login count on successful auth
 				if (user.failedLoginCount > 0) {
-					await this.userRepo.resetFailedLogins(user.id, input.storeId);
+					await this.userRepo.resetFailedLogins(
+						user.id,
+						input.storeId,
+						input.tx
+					);
 				}
 
-				// 9. Create Redis session
+				// Limit the session cap
+				const sessionCount = await this.sessionRepo.countByUserIdAndStoreId(
+					user.id,
+					input.storeId
+				);
+
+				if (sessionCount >= this.sessionLimit) {
+					return err(new SessionLimitExceededError());
+				}
+
+				// Create new Redis session
 				const session = await this.sessionRepo.create({
 					storeId: input.storeId,
 					userId: user.id,
@@ -153,7 +174,7 @@ export class LoginUseCase implements IStorefrontLoginUser {
 					countryCode: '',
 				});
 
-				// 10. Clear rate limiter attempts on successful login
+				// Clear rate limiter attempts on successful login
 				await Promise.all([
 					this.rateLimiter.reset(
 						`rl:login:${input.storeId}:${input.email.toLowerCase()}`
@@ -163,9 +184,9 @@ export class LoginUseCase implements IStorefrontLoginUser {
 					this.logger.error('Failed to reset rate limits', String(e))
 				);
 
-				// 11. Update last login timestamp (fire-and-forget, don't block the response)
+				// Update last login timestamp (fire-and-forget, don't block the response)
 				this.userRepo
-					.updateLastLoginAt(user.id, input.storeId)
+					.updateLastLoginAt(user.id, input.storeId, input.tx)
 					.catch((e) =>
 						this.logger.error('Failed to update lastLoginAt', String(e))
 					);
