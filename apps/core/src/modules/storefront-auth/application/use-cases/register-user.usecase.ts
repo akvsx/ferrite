@@ -7,14 +7,14 @@ import {
 import { AppLogger } from '@core/logger/logger.service';
 import { type ITracer, OTEL_TRACER } from '@core/tracer';
 import {
+	type ICreateSession,
+	STOREFRONT_CREATE_SESSION_UC,
+} from '@modules/storefront-auth/domain/ports/create-session-usecase.port';
+import {
 	type ISendVerificationEmail,
 	STOREFRONT_SEND_VERIFICATION_EMAIL_UC,
 } from '@modules/storefront-auth/domain/ports/email-verification-usecase.port';
-import {
-	type IStorefrontLoginUser,
-	type LoginResult,
-	STOREFRONT_LOGIN_UC,
-} from '@modules/storefront-auth/domain/ports/login-usecase.port';
+import type { LoginResult } from '@modules/storefront-auth/domain/ports/login-usecase.port';
 import {
 	type IStorefrontPasswordHasher,
 	STOREFRONT_PASSWORD_HASHER,
@@ -24,6 +24,7 @@ import {
 	type IStorefrontUserRepository,
 	STOREFRONT_USER_REPOSITORY,
 } from '@modules/storefront-auth/domain/ports/storefront-user-repository.port';
+import { StorefrontUserMapper } from '@modules/storefront-auth/infrastructure/persistance/mappers/storefront-user.mapper';
 import { Inject, Injectable } from '@nestjs/common';
 import { IncompleteConfigurationError } from '@store/domain/errors/incomplete-configuration.error';
 import { StoreNotFoundError } from '@store/domain/errors/store-not-found.error';
@@ -41,8 +42,8 @@ export class RegisterUserUseCase implements IStorefrontRegisterUser {
 		@Inject(UNIT_OF_WORK) private readonly uow: IUnitOfWork,
 		@Inject(STOREFRONT_SEND_VERIFICATION_EMAIL_UC)
 		private readonly sendVerificationEmail: ISendVerificationEmail,
-		@Inject(STOREFRONT_LOGIN_UC)
-		private readonly loginUseCase: IStorefrontLoginUser
+		@Inject(STOREFRONT_CREATE_SESSION_UC)
+		private readonly createSession: ICreateSession
 	) {
 		this.logger.setContext(this.constructor.name);
 	}
@@ -90,20 +91,31 @@ export class RegisterUserUseCase implements IStorefrontRegisterUser {
 						throw emailResult.error;
 					}
 
-					const loginResult = await this.loginUseCase.execute({
+					// Create session — no need to re-hash the password we just set.
+					// Fresh accounts have no rate-limit / lockout / MFA / failed-login state,
+					// so the full login flow is unnecessary.
+					const sessionResult = await this.createSession.execute({
 						storeId: input.storeId,
-						email: input.email,
-						password: input.password,
+						userId: user.id,
 						ipAddress: input.ipAddress,
 						userAgent: input.userAgent,
-						tx,
 					});
 
-					if (loginResult.isErr()) {
-						throw loginResult.error;
+					if (sessionResult.isErr()) {
+						throw sessionResult.error;
 					}
 
-					return loginResult.value;
+					// Update last login timestamp (fire-and-forget)
+					this.repo
+						.updateLastLoginAt(user.id, input.storeId, tx)
+						.catch((e) =>
+							this.logger.error('Failed to update lastLoginAt', String(e))
+						);
+
+					return {
+						session: sessionResult.value,
+						user: StorefrontUserMapper.formatResponse(user),
+					};
 				});
 
 				this.logger.debug('User registered and verification email sent');
