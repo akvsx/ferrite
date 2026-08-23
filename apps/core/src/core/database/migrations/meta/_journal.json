@@ -5,36 +5,8 @@
 		{
 			"idx": 0,
 			"version": "7",
-			"when": 1782591510300,
-			"tag": "0000_spooky_revanche",
-			"breakpoints": true
-		},
-		{
-			"idx": 1,
-			"version": "7",
-			"when": 1785773338218,
-			"tag": "0001_tough_tyger_tiger",
-			"breakpoints": true
-		},
-		{
-			"idx": 2,
-			"version": "7",
-			"when": 1785778112699,
-			"tag": "0002_nice_smasher",
-			"breakpoints": true
-		},
-		{
-			"idx": 3,
-			"version": "7",
-			"when": 1786196110212,
-			"tag": "0003_cloudy_glorian",
-			"breakpoints": true
-		},
-		{
-			"idx": 4,
-			"version": "7",
-			"when": 1786282603092,
-			"tag": "0004_strong_spacker_dave",
+			"when": 1787247803354,
+			"tag": "0000_unique_mesmero",
 			"breakpoints": true
 		}
 	]
