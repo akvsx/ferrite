@@ -19,7 +19,8 @@ export interface IStorefrontUserRepository {
 
 	findByIdAndStoreId(
 		id: string,
-		storeId: string
+		storeId: string,
+		tx?: ITransactionContext
 	): Promise<StorefrontUser | null>;
 
 	incrementFailedLogins(
