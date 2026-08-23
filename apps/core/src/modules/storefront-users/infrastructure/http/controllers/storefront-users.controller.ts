@@ -1,3 +1,4 @@
+import { AllowUnverified } from '@auth/infrastructure/http/decorators/allow-unverified.decorator';
 import { type StorefrontAuthenticatedRequest } from '@common/types/request';
 import { AppLogger } from '@core/logger/logger.service';
 import { type ITracer, OTEL_TRACER } from '@core/tracer';
@@ -39,6 +40,7 @@ export class StorefrontUserController {
 	}
 
 	@Get('me')
+	@AllowUnverified()
 	@GetMeDocs()
 	async getMe(@Req() req: StorefrontAuthenticatedRequest) {
 		return this.tracer.withSpan(
@@ -77,6 +79,7 @@ export class StorefrontUserController {
 	}
 
 	@Delete('me')
+	@AllowUnverified()
 	@DeleteMeDocs()
 	async deleteMe(@Req() req: StorefrontAuthenticatedRequest) {
 		return this.tracer.withSpan(
