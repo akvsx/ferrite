@@ -8,6 +8,7 @@ import { type Request } from '@common/types/request';
 import { AppLogger } from '@core/logger/logger.service';
 import { type ITracer } from '@core/tracer';
 import { OTEL_TRACER } from '@core/tracer/tracer.constraint';
+import { ALLOW_UNVERIFIED } from '@modules/auth/infrastructure/http/decorators/allow-unverified.decorator';
 import {
 	AUTH_REALM_KEY,
 	type AuthRealm,
@@ -93,13 +94,30 @@ export class AuthGuard implements CanActivate {
 			const result = await adapter.authenticate(request);
 
 			if (result.isErr()) {
+				const errObj = result.error as any;
+
+				// Allow unverified users through on routes decorated with @AllowUnverified().
+				// The adapter has already attached the user to the request.
+				if (errObj._tag === 'EmailNotVerifiedError') {
+					const allowUnverified =
+						this.reflector.getAllAndOverride<boolean>(ALLOW_UNVERIFIED, [
+							context.getHandler(),
+							context.getClass(),
+						]) ?? false;
+
+					if (allowUnverified) {
+						this.logger.debug(
+							`Unverified email allowed on ${request.url} [@AllowUnverified]`
+						);
+						return true;
+					}
+
+					throw new UnauthorizedException(errObj.message);
+				}
+
 				this.logger.error(`Auth failed [${realm}]: ${result.error.message}`);
 
-				const errObj = result.error as any;
-				if (
-					errObj._tag === 'AccountBannedError' ||
-					errObj._tag === 'EmailNotVerifiedError'
-				) {
+				if (errObj._tag === 'AccountBannedError') {
 					throw new UnauthorizedException(errObj.message);
 				}
 

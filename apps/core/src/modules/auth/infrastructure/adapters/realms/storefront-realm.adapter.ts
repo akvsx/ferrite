@@ -77,6 +77,12 @@ export class StorefrontRealmAdapter implements IRealmAuthAdapter {
 					return err(result.error);
 				}
 
+				// Attach user to request before status checks so that
+				// @AllowUnverified routes still have access to the user object.
+				const storefrontRequest = request as StorefrontAuthenticatedRequest;
+				storefrontRequest.storefrontUser = result.value;
+				storefrontRequest.__authRealm = 'storefront';
+
 				const statusResult = await this.validateAccountStatus.execute({
 					user: result.value,
 				});
@@ -87,10 +93,6 @@ export class StorefrontRealmAdapter implements IRealmAuthAdapter {
 					);
 					return err(statusResult.error);
 				}
-
-				const storefrontRequest = request as StorefrontAuthenticatedRequest;
-				storefrontRequest.storefrontUser = result.value;
-				storefrontRequest.__authRealm = 'storefront';
 
 				return ok(true);
 			},
