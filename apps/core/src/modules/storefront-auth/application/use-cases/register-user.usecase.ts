@@ -29,6 +29,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { IncompleteConfigurationError } from '@store/domain/errors/incomplete-configuration.error';
 import { StoreNotFoundError } from '@store/domain/errors/store-not-found.error';
 import { EmailAlreadyRegisteredError } from '../../domain/errors/email-already-registered.error';
+import { SessionCreationAfterRegisterError } from '../../domain/errors/session-creation-after-register.error';
 
 @Injectable()
 export class RegisterUserUseCase implements IStorefrontRegisterUser {
@@ -59,7 +60,10 @@ export class RegisterUserUseCase implements IStorefrontRegisterUser {
 	}): Promise<
 		Result<
 			LoginResult,
-			EmailAlreadyRegisteredError | IncompleteConfigurationError | Error
+			| EmailAlreadyRegisteredError
+			| IncompleteConfigurationError
+			| SessionCreationAfterRegisterError
+			| Error
 		>
 	> {
 		return this.tracer.withSpan('use-case.register-user', async () => {
@@ -105,9 +109,10 @@ export class RegisterUserUseCase implements IStorefrontRegisterUser {
 				});
 
 				if (sessionResult.isErr()) {
-					// User and outbox row are already committed; propagate the session error
-					// so the caller can surface it (e.g. SessionLimitExceededError).
-					return err(sessionResult.error);
+					// User and outbox row are already committed; wrap in a dedicated error
+					// so the caller can distinguish a post-registration session failure
+					// from other session errors.
+					return err(new SessionCreationAfterRegisterError(user.id));
 				}
 
 				// Update last login timestamp (fire-and-forget, no tx needed post-commit)
