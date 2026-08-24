@@ -10,6 +10,7 @@ import { CurrencyModule } from '@modules/currency';
 import { HealthModule } from '@modules/health/health.module';
 import { OnboardingModule } from '@modules/onboarding/onboarding.module';
 import { UsersModule } from '@modules/platform-users/users.module';
+import { ProductsModule } from '@modules/products/products.module';
 import { QueueModule } from '@modules/queue';
 import { StoreModule } from '@modules/store';
 import { StorefrontAuthModule } from '@modules/storefront-auth';
@@ -54,6 +55,7 @@ import { ZodSerializerInterceptor, ZodValidationPipe } from 'nestjs-zod';
 		OnboardingModule,
 		NotificationsModule,
 		CategoriesModule,
+		ProductsModule,
 		StorefrontUsersModule,
 		RouterModule.register([
 			{
