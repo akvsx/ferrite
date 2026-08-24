@@ -1,4 +1,5 @@
 import { randomBytes } from 'node:crypto';
+import { AllowUnverified } from '@auth/infrastructure/http/decorators/allow-unverified.decorator';
 import { PublicRoute } from '@common/decorators/public-route.decorator';
 import type { Request } from '@common/types/request';
 import type { FerriteConfig } from '@core/config/ferrite.schema';
@@ -105,6 +106,7 @@ import { VerifyEmailDTO } from '../dto/verify-email.dto';
 @ApiTags('Storefront Auth')
 @Controller('/auth')
 @UseRealm('storefront')
+@AllowUnverified()
 export class StorefrontAuthController {
 	private readonly cookieName: string;
 	private readonly sessionMaxAgeS: number;

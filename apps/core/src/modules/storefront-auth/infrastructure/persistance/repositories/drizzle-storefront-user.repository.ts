@@ -117,14 +117,16 @@ export class DrizzleStorefrontUserRepository
 
 	async findByIdAndStoreId(
 		id: string,
-		storeId: string
+		storeId: string,
+		tx?: ITransactionContext
 	): Promise<StorefrontUser | null> {
 		return traceDbOp(
 			this.tracer,
 			'db.storefrontUsers.findByIdAndStoreId',
 			{ 'db.table': 'storefront_users', 'db.operation': 'select' },
 			async () => {
-				const [user] = await this.typedDb
+				const executor = tx ? DrizzleUnitOfWork.unwrap(tx) : this.typedDb;
+				const [user] = await executor
 					.select()
 					.from(storefrontUsers)
 					.where(

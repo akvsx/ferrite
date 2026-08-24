@@ -1,2 +1,0 @@
-DROP INDEX "uq_storefront_users_store_email";--> statement-breakpoint
-CREATE UNIQUE INDEX "uq_storefront_users_store_email" ON "storefront_users" USING btree ("store_id",lower("email")) WHERE "storefront_users"."deleted_at" is null;

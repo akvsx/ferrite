@@ -80,6 +80,127 @@ export class RedisStorefrontSessionRepository
 		});
 	}
 
+	/**
+	 * Lua script that atomically:
+	 *   1. Iterates all members of the user-sessions set
+	 *   2. Checks each member's hash key — counts live, prunes stale
+	 *   3. If live count < limit: writes the session hash, SADD, sets TTLs, returns new ID
+	 *   4. If live count >= limit: returns '0' (limit exceeded)
+	 *
+	 * KEYS[1] = user-sessions set key
+	 * KEYS[2] = new session hash key
+	 * ARGV[1] = session limit (number)
+	 * ARGV[2] = new session ID
+	 * ARGV[3] = idle TTL ms
+	 * ARGV[4] = absolute TTL ms
+	 * ARGV[5..] = flat session field/value pairs
+	 */
+	private static readonly CREATE_IF_BELOW_LIMIT_LUA = `
+local uKey  = KEYS[1]
+local sKey  = KEYS[2]
+local limit = tonumber(ARGV[1])
+local newId = ARGV[2]
+local idleTtl = tonumber(ARGV[3])
+local absTtl  = tonumber(ARGV[4])
+
+local members = redis.call('SMEMBERS', uKey)
+local stale   = {}
+local live    = 0
+
+for _, sid in ipairs(members) do
+  if redis.call('EXISTS', 'sf:session:' .. sid) == 1 then
+    live = live + 1
+  else
+    stale[#stale + 1] = sid
+  end
+end
+
+if #stale > 0 then
+  redis.call('SREM', uKey, unpack(stale))
+end
+
+if live >= limit then
+  return '0'
+end
+
+-- Build field/value table from ARGV[5..]
+local fields = {}
+for i = 5, #ARGV do
+  fields[#fields + 1] = ARGV[i]
+end
+
+redis.call('HSET', sKey, unpack(fields))
+redis.call('PEXPIRE', sKey, idleTtl)
+redis.call('SADD', uKey, newId)
+redis.call('PEXPIRE', uKey, absTtl)
+
+return newId
+`;
+
+	async createIfBelowLimit(
+		input: NewStorefrontSession,
+		limit: number
+	): Promise<StorefrontSession | null> {
+		return this.tracer.withSpan(
+			'storefront_auth.session.createIfBelowLimit',
+			async () => {
+				const id = generateToken();
+				const createdAt = new Date().toISOString();
+				const countryCode = input.countryCode ?? '';
+
+				const uKey = userSessionsKey(input.storeId, input.userId);
+				const sKey = sessionKey(id);
+
+				// Flat field/value pairs for HSET
+				const fields = [
+					'storeId',
+					input.storeId,
+					'userId',
+					input.userId,
+					'ipAddress',
+					input.ipAddress,
+					'userAgent',
+					input.userAgent,
+					'countryCode',
+					countryCode,
+					'createdAt',
+					createdAt,
+				];
+
+				const result = (await this.redis.eval(
+					RedisStorefrontSessionRepository.CREATE_IF_BELOW_LIMIT_LUA,
+					2, // numkeys
+					uKey,
+					sKey,
+					String(limit),
+					id,
+					String(this.idleLifetimeMs),
+					String(this.absoluteLifetimeMs),
+					...fields
+				)) as string;
+
+				if (result === '0') {
+					this.logger.debug(
+						`Session limit reached: userId=${input.userId}, limit=${limit}`
+					);
+					return null;
+				}
+
+				this.logger.debug(`Session created atomically: sessionId=${id}`);
+
+				return storefrontSessionSchema.parse({
+					id,
+					storeId: input.storeId,
+					userId: input.userId,
+					ipAddress: input.ipAddress,
+					userAgent: input.userAgent,
+					countryCode,
+					createdAt,
+				});
+			}
+		);
+	}
+
 	async findByIdAndStoreId(
 		id: string,
 		storeId: string

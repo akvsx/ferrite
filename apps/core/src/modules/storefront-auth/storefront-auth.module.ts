@@ -1,6 +1,7 @@
 import { NotificationsModule } from '@modules/notifications';
 import { StoreModule } from '@modules/store/store.module';
 import { Module } from '@nestjs/common';
+import { CreateSessionUseCase } from './application/use-cases/create-session.usecase';
 import { ForgotPasswordUseCase } from './application/use-cases/forgot-password.usecase';
 import { GetSessionUseCase } from './application/use-cases/get-session.usecase';
 import { GetSessionsUseCase } from './application/use-cases/get-sessions.usecase';
@@ -15,6 +16,7 @@ import { UpdatePasswordUseCase } from './application/use-cases/update-password.u
 import { ValidateAccountStatusUseCase } from './application/use-cases/validate-account-status.usecase';
 import { ValidateSessionUseCase } from './application/use-cases/validate-session.usecase';
 import { VerifyEmailUseCase } from './application/use-cases/verify-email.usecase';
+import { STOREFRONT_CREATE_SESSION_UC } from './domain/ports/create-session-usecase.port';
 import { STOREFRONT_EMAIL_VERIFICATION_REPOSITORY } from './domain/ports/email-verification-repository.port';
 import {
 	STOREFRONT_RESEND_VERIFICATION_EMAIL_UC,
@@ -84,6 +86,10 @@ import { StorefrontRedisProvider } from './infrastructure/redis/redis.provider';
 		{
 			provide: STOREFRONT_LOGIN_UC,
 			useClass: LoginUseCase,
+		},
+		{
+			provide: STOREFRONT_CREATE_SESSION_UC,
+			useClass: CreateSessionUseCase,
 		},
 		{
 			provide: STOREFRONT_SEND_VERIFICATION_EMAIL_UC,

@@ -3,7 +3,10 @@ import type { FerriteConfig } from '@core/config/ferrite.schema';
 import { AppLogger } from '@core/logger/logger.service';
 import { type ITracer, OTEL_TRACER } from '@core/tracer';
 import { InvalidLoginMethodError } from '@modules/storefront-auth/domain/errors/invalid-login-method.error';
-import { SessionLimitExceededError } from '@modules/storefront-auth/domain/errors/session-limit-exceeded.error';
+import {
+	type ICreateSession,
+	STOREFRONT_CREATE_SESSION_UC,
+} from '@modules/storefront-auth/domain/ports/create-session-usecase.port';
 import type {
 	IStorefrontLoginUser,
 	LoginError,
@@ -18,10 +21,6 @@ import {
 	type IRateLimiter,
 	RATE_LIMITER,
 } from '@modules/storefront-auth/domain/ports/rate-limiter.port';
-import {
-	type IStorefrontSessionRepository,
-	STOREFRONT_SESSION_REPOSITORY,
-} from '@modules/storefront-auth/domain/ports/storefront-session-repository.port';
 import {
 	type IStorefrontUserRepository,
 	STOREFRONT_USER_REPOSITORY,
@@ -38,7 +37,6 @@ import { RateLimitedError } from '../../domain/errors/rate-limited.error';
 export class LoginUseCase implements IStorefrontLoginUser {
 	private readonly lockoutThreshold: number;
 	private readonly lockoutDurationMs: number;
-	private readonly sessionLimit: number;
 
 	constructor(
 		private readonly logger: AppLogger,
@@ -47,8 +45,8 @@ export class LoginUseCase implements IStorefrontLoginUser {
 		private readonly userRepo: IStorefrontUserRepository,
 		@Inject(STOREFRONT_PASSWORD_HASHER)
 		private readonly hasher: IStorefrontPasswordHasher,
-		@Inject(STOREFRONT_SESSION_REPOSITORY)
-		private readonly sessionRepo: IStorefrontSessionRepository,
+		@Inject(STOREFRONT_CREATE_SESSION_UC)
+		private readonly createSession: ICreateSession,
 		@Inject(RATE_LIMITER) private readonly rateLimiter: IRateLimiter,
 		config: ConfigService
 	) {
@@ -58,7 +56,6 @@ export class LoginUseCase implements IStorefrontLoginUser {
 			ferriteConfig.storefrontAuth.security.lockoutThreshold;
 		this.lockoutDurationMs =
 			ferriteConfig.storefrontAuth.security.lockoutDurationMs;
-		this.sessionLimit = ferriteConfig.storefrontAuth.session.sessionLimit;
 	}
 
 	async execute(input: LoginInput): Promise<Result<LoginResult, LoginError>> {
@@ -155,24 +152,17 @@ export class LoginUseCase implements IStorefrontLoginUser {
 					);
 				}
 
-				// Limit the session cap
-				const sessionCount = await this.sessionRepo.countByUserIdAndStoreId(
-					user.id,
-					input.storeId
-				);
-
-				if (sessionCount >= this.sessionLimit) {
-					return err(new SessionLimitExceededError());
-				}
-
-				// Create new Redis session
-				const session = await this.sessionRepo.create({
+				// Create session (enforces session limit)
+				const sessionResult = await this.createSession.execute({
 					storeId: input.storeId,
 					userId: user.id,
 					ipAddress: input.ipAddress,
 					userAgent: input.userAgent,
-					countryCode: '',
 				});
+
+				if (sessionResult.isErr()) {
+					return err(sessionResult.error);
+				}
 
 				// Clear rate limiter attempts on successful login
 				await Promise.all([
@@ -194,7 +184,7 @@ export class LoginUseCase implements IStorefrontLoginUser {
 				this.logger.debug(`Login successful: userId=${user.id}`);
 
 				return ok({
-					session,
+					session: sessionResult.value,
 					user: StorefrontUserMapper.formatResponse(user),
 				});
 			},

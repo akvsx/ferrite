@@ -93,7 +93,8 @@ export class SendVerificationEmailUseCase implements ISendVerificationEmail {
 
 					const existingUser = await this.userRepo.findByIdAndStoreId(
 						input.userId,
-						input.storeId
+						input.storeId,
+						input.tx
 					);
 
 					if (!existingUser) {

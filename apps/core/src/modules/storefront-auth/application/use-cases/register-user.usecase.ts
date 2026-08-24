@@ -7,14 +7,14 @@ import {
 import { AppLogger } from '@core/logger/logger.service';
 import { type ITracer, OTEL_TRACER } from '@core/tracer';
 import {
+	type ICreateSession,
+	STOREFRONT_CREATE_SESSION_UC,
+} from '@modules/storefront-auth/domain/ports/create-session-usecase.port';
+import {
 	type ISendVerificationEmail,
 	STOREFRONT_SEND_VERIFICATION_EMAIL_UC,
 } from '@modules/storefront-auth/domain/ports/email-verification-usecase.port';
-import {
-	type IStorefrontLoginUser,
-	type LoginResult,
-	STOREFRONT_LOGIN_UC,
-} from '@modules/storefront-auth/domain/ports/login-usecase.port';
+import type { LoginResult } from '@modules/storefront-auth/domain/ports/login-usecase.port';
 import {
 	type IStorefrontPasswordHasher,
 	STOREFRONT_PASSWORD_HASHER,
@@ -24,10 +24,12 @@ import {
 	type IStorefrontUserRepository,
 	STOREFRONT_USER_REPOSITORY,
 } from '@modules/storefront-auth/domain/ports/storefront-user-repository.port';
+import { StorefrontUserMapper } from '@modules/storefront-auth/infrastructure/persistance/mappers/storefront-user.mapper';
 import { Inject, Injectable } from '@nestjs/common';
 import { IncompleteConfigurationError } from '@store/domain/errors/incomplete-configuration.error';
 import { StoreNotFoundError } from '@store/domain/errors/store-not-found.error';
 import { EmailAlreadyRegisteredError } from '../../domain/errors/email-already-registered.error';
+import { SessionCreationAfterRegisterError } from '../../domain/errors/session-creation-after-register.error';
 
 @Injectable()
 export class RegisterUserUseCase implements IStorefrontRegisterUser {
@@ -41,8 +43,8 @@ export class RegisterUserUseCase implements IStorefrontRegisterUser {
 		@Inject(UNIT_OF_WORK) private readonly uow: IUnitOfWork,
 		@Inject(STOREFRONT_SEND_VERIFICATION_EMAIL_UC)
 		private readonly sendVerificationEmail: ISendVerificationEmail,
-		@Inject(STOREFRONT_LOGIN_UC)
-		private readonly loginUseCase: IStorefrontLoginUser
+		@Inject(STOREFRONT_CREATE_SESSION_UC)
+		private readonly createSession: ICreateSession
 	) {
 		this.logger.setContext(this.constructor.name);
 	}
@@ -58,14 +60,17 @@ export class RegisterUserUseCase implements IStorefrontRegisterUser {
 	}): Promise<
 		Result<
 			LoginResult,
-			EmailAlreadyRegisteredError | IncompleteConfigurationError | Error
+			| EmailAlreadyRegisteredError
+			| IncompleteConfigurationError
+			| SessionCreationAfterRegisterError
+			| Error
 		>
 	> {
 		return this.tracer.withSpan('use-case.register-user', async () => {
 			try {
 				const hashedPassword = await this.hasher.hash(input.password);
 
-				const result = await this.uow.execute(async (tx) => {
+				const { user } = await this.uow.execute(async (tx) => {
 					const user = await this.repo.create(
 						{
 							id: crypto.randomUUID(),
@@ -90,25 +95,39 @@ export class RegisterUserUseCase implements IStorefrontRegisterUser {
 						throw emailResult.error;
 					}
 
-					const loginResult = await this.loginUseCase.execute({
-						storeId: input.storeId,
-						email: input.email,
-						password: input.password,
-						ipAddress: input.ipAddress,
-						userAgent: input.userAgent,
-						tx,
-					});
-
-					if (loginResult.isErr()) {
-						throw loginResult.error;
-					}
-
-					return loginResult.value;
+					return { user };
 				});
+
+				// Transaction committed — create the Redis session outside the DB tx.
+				// Fresh accounts have no rate-limit / lockout / MFA / failed-login state,
+				// so the full login flow is unnecessary.
+				const sessionResult = await this.createSession.execute({
+					storeId: input.storeId,
+					userId: user.id,
+					ipAddress: input.ipAddress,
+					userAgent: input.userAgent,
+				});
+
+				if (sessionResult.isErr()) {
+					// User and outbox row are already committed; wrap in a dedicated error
+					// so the caller can distinguish a post-registration session failure
+					// from other session errors.
+					return err(new SessionCreationAfterRegisterError(user.id));
+				}
+
+				// Update last login timestamp (fire-and-forget, no tx needed post-commit)
+				this.repo
+					.updateLastLoginAt(user.id, input.storeId)
+					.catch((e) =>
+						this.logger.error('Failed to update lastLoginAt', String(e))
+					);
 
 				this.logger.debug('User registered and verification email sent');
 
-				return ok(result);
+				return ok({
+					session: sessionResult.value,
+					user: StorefrontUserMapper.formatResponse(user),
+				});
 			} catch (error: unknown) {
 				if (isFkViolation(error)) {
 					return err(new StoreNotFoundError(input.storeId));

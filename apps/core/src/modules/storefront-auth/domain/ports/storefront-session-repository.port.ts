@@ -11,6 +11,19 @@ export interface IStorefrontSessionRepository {
 	/** Generate a session ID, store in Redis hash, set idle TTL */
 	create(session: NewStorefrontSession): Promise<StorefrontSession>;
 
+	/**
+	 * Atomically count live sessions for the user-store pair and, if the count
+	 * is below `limit`, create a new session in the same operation.
+	 * Stale set members (whose hash keys no longer exist) are pruned as a
+	 * side-effect, exactly as `countByUserIdAndStoreId` does.
+	 *
+	 * @returns The newly created session, or `null` if the limit is already reached.
+	 */
+	createIfBelowLimit(
+		session: NewStorefrontSession,
+		limit: number
+	): Promise<StorefrontSession | null>;
+
 	/** Lookup session by ID, return null if not found or storeId mismatch */
 	findByIdAndStoreId(
 		id: string,
