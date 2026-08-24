@@ -39,25 +39,20 @@ export class CreateSessionUseCase implements ICreateSession {
 			async () => {
 				this.logger.debug(`Creating session for userId=${input.userId}`);
 
-				const sessionCount = await this.sessionRepo.countByUserIdAndStoreId(
-					input.userId,
-					input.storeId
+				const session = await this.sessionRepo.createIfBelowLimit(
+					{
+						storeId: input.storeId,
+						userId: input.userId,
+						ipAddress: input.ipAddress,
+						userAgent: input.userAgent,
+						countryCode: '',
+					},
+					this.sessionLimit
 				);
 
-				if (sessionCount >= this.sessionLimit) {
-					this.logger.debug(
-						`Session limit reached: userId=${input.userId}, count=${sessionCount}, limit=${this.sessionLimit}`
-					);
+				if (session === null) {
 					return err(new SessionLimitExceededError());
 				}
-
-				const session = await this.sessionRepo.create({
-					storeId: input.storeId,
-					userId: input.userId,
-					ipAddress: input.ipAddress,
-					userAgent: input.userAgent,
-					countryCode: '',
-				});
 
 				this.logger.debug(
 					`Session created: sessionId=${session.id}, userId=${input.userId}`
