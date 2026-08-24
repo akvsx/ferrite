@@ -12,8 +12,8 @@ export class CategoryMapper {
 			description: row.description,
 			sortOrder: row.sortOrder,
 			isActive: row.isActive,
-			createdAt: row.createdAt,
-			updatedAt: row.updatedAt,
+			createdAt: row.createdAt.toISOString(),
+			updatedAt: row.updatedAt.toISOString(),
 		});
 	}
 }
