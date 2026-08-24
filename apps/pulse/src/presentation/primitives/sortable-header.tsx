@@ -1,12 +1,13 @@
-import type { Column } from '@tanstack/react-table';
+import type { Column, RowData } from '@tanstack/react-table';
 import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
+import type { DataTableFeatures } from '@/core/hooks/use-data-table';
 import { Button } from '@/presentation/primitives/button';
 
-export function SortableHeader<T>({
+export function SortableHeader<T extends RowData>({
 	column,
 	title,
 }: {
-	column: Column<T, unknown>;
+	column: Column<DataTableFeatures, T, unknown>;
 	title: string;
 }) {
 	const isSorted = column.getIsSorted();

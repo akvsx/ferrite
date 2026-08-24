@@ -1,6 +1,7 @@
 'use client';
 
 import type { ColumnDef } from '@tanstack/react-table';
+import type { DataTableFeatures } from '@/core/hooks/use-data-table';
 import { SortableHeader } from '@/presentation/primitives/sortable-header';
 import type { Order } from '../lib/orders-mock';
 import { AddressCell } from './cells/address-cell';
@@ -15,7 +16,7 @@ import {
 } from './cells/transaction-cell';
 import { UserCell } from './cells/user-cell';
 
-export const ordersColumns: ColumnDef<Order>[] = [
+export const ordersColumns: ColumnDef<DataTableFeatures, Order>[] = [
 	{
 		accessorKey: 'id',
 		header: ({ column }) => <SortableHeader column={column} title="Order ID" />,
@@ -35,7 +36,7 @@ export const ordersColumns: ColumnDef<Order>[] = [
 		accessorKey: 'user',
 		header: ({ column }) => <SortableHeader column={column} title="User" />,
 		cell: ({ row }) => <UserCell row={row} />,
-		sortingFn: (rowA, rowB) => {
+		sortFn: (rowA, rowB) => {
 			const a = (rowA.getValue('user') as { name: string }).name ?? '';
 			const b = (rowB.getValue('user') as { name: string }).name ?? '';
 			return a.localeCompare(b);
@@ -45,7 +46,7 @@ export const ordersColumns: ColumnDef<Order>[] = [
 		accessorKey: 'address',
 		header: ({ column }) => <SortableHeader column={column} title="Address" />,
 		cell: ({ row }) => <AddressCell row={row} />,
-		sortingFn: (rowA, rowB) => {
+		sortFn: (rowA, rowB) => {
 			const a = (rowA.getValue('address') as { city: string }).city ?? '';
 			const b = (rowB.getValue('address') as { city: string }).city ?? '';
 			return a.localeCompare(b);
@@ -56,7 +57,7 @@ export const ordersColumns: ColumnDef<Order>[] = [
 		accessorFn: (row) => row.products.reduce((sum, p) => sum + p.price, 0),
 		header: ({ column }) => <SortableHeader column={column} title="Amount" />,
 		cell: ({ row }) => <AmountCell row={row} />,
-		sortingFn: 'basic',
+		sortFn: 'basic',
 	},
 	{
 		accessorKey: 'transactionStatus',

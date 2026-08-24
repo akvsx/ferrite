@@ -1,31 +1,54 @@
 import {
 	type ColumnDef,
 	type ColumnFiltersState,
+	type ColumnVisibilityState,
+	columnFilteringFeature,
+	columnVisibilityFeature,
+	createExpandedRowModel,
+	createFilteredRowModel,
+	createSortedRowModel,
 	type ExpandedState,
-	getCoreRowModel,
-	getExpandedRowModel,
-	getFilteredRowModel,
-	getSortedRowModel,
 	type OnChangeFn,
+	type RowData,
+	rowExpandingFeature,
+	rowPaginationFeature,
+	rowSelectionFeature,
+	rowSortingFeature,
 	type SortingState,
-	useReactTable,
-	type VisibilityState,
+	sortFn_basic,
+	tableFeatures,
+	useTable,
 } from '@tanstack/react-table';
 import { useCallback, useState } from 'react';
 
-export interface UseDataTableProps<TData, TValue> {
-	columns: ColumnDef<TData, TValue>[];
+const dataTableFeatures = tableFeatures({
+	rowExpandingFeature,
+	rowSortingFeature,
+	rowPaginationFeature,
+	rowSelectionFeature,
+	columnFilteringFeature,
+	columnVisibilityFeature,
+	expandedRowModel: createExpandedRowModel(),
+	sortedRowModel: createSortedRowModel(),
+	filteredRowModel: createFilteredRowModel(),
+	sortFns: { basic: sortFn_basic },
+});
+
+export type DataTableFeatures = typeof dataTableFeatures;
+
+export interface UseDataTableProps<TData extends RowData> {
+	columns: ColumnDef<DataTableFeatures, TData>[];
 	data: TData[];
 	expandable?: boolean;
 	expanded?: ExpandedState;
 	onExpandedChange?: OnChangeFn<ExpandedState>;
 	columnFilters?: ColumnFiltersState;
 	onColumnFiltersChange?: OnChangeFn<ColumnFiltersState>;
-	columnVisibility?: VisibilityState;
-	onColumnVisibilityChange?: OnChangeFn<VisibilityState>;
+	columnVisibility?: ColumnVisibilityState;
+	onColumnVisibilityChange?: OnChangeFn<ColumnVisibilityState>;
 }
 
-export function useDataTable<TData, TValue>({
+export function useDataTable<TData extends RowData>({
 	columns,
 	data,
 	expandable = true,
@@ -35,12 +58,12 @@ export function useDataTable<TData, TValue>({
 	onColumnFiltersChange,
 	columnVisibility,
 	onColumnVisibilityChange,
-}: UseDataTableProps<TData, TValue>) {
+}: UseDataTableProps<TData>) {
 	const [localColumnFilters, setLocalColumnFilters] =
 		useState<ColumnFiltersState>([]);
 	const [localExpanded, setLocalExpanded] = useState<ExpandedState>({});
 	const [localColumnVisibility, setLocalColumnVisibility] =
-		useState<VisibilityState>({});
+		useState<ColumnVisibilityState>({});
 	const [sorting, setSorting] = useState<SortingState>([]);
 
 	const [focusedRowId, setFocusedRowId] = useState<string | null>(null);
@@ -58,18 +81,15 @@ export function useDataTable<TData, TValue>({
 	const actualOnColumnVisibilityChange =
 		onColumnVisibilityChange || setLocalColumnVisibility;
 
-	const table = useReactTable({
+	const table = useTable({
+		features: dataTableFeatures,
 		data,
 		columns,
-		getCoreRowModel: getCoreRowModel(),
-		getExpandedRowModel: getExpandedRowModel(),
-		getFilteredRowModel: getFilteredRowModel(),
 		getRowCanExpand: () => expandable,
 		onColumnFiltersChange: actualOnColumnFiltersChange,
 		onExpandedChange: actualOnExpandedChange,
 		onColumnVisibilityChange: actualOnColumnVisibilityChange,
 		onSortingChange: setSorting,
-		getSortedRowModel: getSortedRowModel(),
 
 		state: {
 			columnFilters: actualColumnFilters,
