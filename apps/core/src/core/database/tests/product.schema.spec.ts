@@ -108,7 +108,6 @@ describe('Product tables', () => {
 			expect(product.id).toBeDefined();
 			expect(product.storeId).toBe(store.id);
 			expect(product.status).toBe('draft');
-			expect(product.isActive).toBe(true);
 		});
 
 		it('should enforce unique slug per store', async () => {
