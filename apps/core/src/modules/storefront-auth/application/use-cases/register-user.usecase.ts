@@ -66,7 +66,7 @@ export class RegisterUserUseCase implements IStorefrontRegisterUser {
 			try {
 				const hashedPassword = await this.hasher.hash(input.password);
 
-				const result = await this.uow.execute(async (tx) => {
+				const { user } = await this.uow.execute(async (tx) => {
 					const user = await this.repo.create(
 						{
 							id: crypto.randomUUID(),
@@ -91,36 +91,38 @@ export class RegisterUserUseCase implements IStorefrontRegisterUser {
 						throw emailResult.error;
 					}
 
-					// Create session — no need to re-hash the password we just set.
-					// Fresh accounts have no rate-limit / lockout / MFA / failed-login state,
-					// so the full login flow is unnecessary.
-					const sessionResult = await this.createSession.execute({
-						storeId: input.storeId,
-						userId: user.id,
-						ipAddress: input.ipAddress,
-						userAgent: input.userAgent,
-					});
-
-					if (sessionResult.isErr()) {
-						throw sessionResult.error;
-					}
-
-					// Update last login timestamp (fire-and-forget)
-					this.repo
-						.updateLastLoginAt(user.id, input.storeId, tx)
-						.catch((e) =>
-							this.logger.error('Failed to update lastLoginAt', String(e))
-						);
-
-					return {
-						session: sessionResult.value,
-						user: StorefrontUserMapper.formatResponse(user),
-					};
+					return { user };
 				});
+
+				// Transaction committed — create the Redis session outside the DB tx.
+				// Fresh accounts have no rate-limit / lockout / MFA / failed-login state,
+				// so the full login flow is unnecessary.
+				const sessionResult = await this.createSession.execute({
+					storeId: input.storeId,
+					userId: user.id,
+					ipAddress: input.ipAddress,
+					userAgent: input.userAgent,
+				});
+
+				if (sessionResult.isErr()) {
+					// User and outbox row are already committed; propagate the session error
+					// so the caller can surface it (e.g. SessionLimitExceededError).
+					return err(sessionResult.error);
+				}
+
+				// Update last login timestamp (fire-and-forget, no tx needed post-commit)
+				this.repo
+					.updateLastLoginAt(user.id, input.storeId)
+					.catch((e) =>
+						this.logger.error('Failed to update lastLoginAt', String(e))
+					);
 
 				this.logger.debug('User registered and verification email sent');
 
-				return ok(result);
+				return ok({
+					session: sessionResult.value,
+					user: StorefrontUserMapper.formatResponse(user),
+				});
 			} catch (error: unknown) {
 				if (isFkViolation(error)) {
 					return err(new StoreNotFoundError(input.storeId));
