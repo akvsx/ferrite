@@ -2,10 +2,11 @@ import { UseRealm } from '@auth/index';
 import { Pagination } from '@common/decorators/pagination.decorator';
 import { RequirePermission } from '@common/decorators/require-permission.decorator';
 import { type ITracer, OTEL_TRACER } from '@core/tracer';
-import type {
-	PaginatedProductResponse,
-	PaginationInput,
-	ProductDetail,
+import {
+	type PaginatedProductResponse,
+	type PaginationInput,
+	type ProductDetail,
+	productStatus,
 } from '@ferrite/schema';
 import { StorePermissionGuard } from '@modules/store/infrastructure/http/guards/store-permission.guard';
 import {
@@ -21,6 +22,7 @@ import {
 	InternalServerErrorException,
 	NotFoundException,
 	Param,
+	ParseEnumPipe,
 	ParseUUIDPipe,
 	Patch,
 	Post,
@@ -82,7 +84,8 @@ export class ProductAdminController {
 		@Query('search') search?: string,
 		@Query('categoryId') categoryId?: string,
 		@Query('supplierId') supplierId?: string,
-		@Query('status') status?: 'draft' | 'active' | 'archived'
+		@Query('status', new ParseEnumPipe(productStatus.enum, { optional: true }))
+		status?: 'draft' | 'active' | 'archived'
 	): Promise<PaginatedProductResponse> {
 		return this.tracer.withSpan('http.admin.products.list', async () => {
 			const result = await this.listProductsUc.execute({

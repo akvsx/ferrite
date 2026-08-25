@@ -1,7 +1,11 @@
 import type { TDatabase } from '@core/database/db.type';
-import { products } from '@core/database/schema/product.schema';
+import {
+	products,
+	productVariants,
+} from '@core/database/schema/product.schema';
 import { traceDbOp } from '@core/database/utils/trace-db-op.util';
 import type { ITracer } from '@core/tracer';
+import { eq, sql } from 'drizzle-orm';
 import { storeFilter } from './product-utils';
 
 export async function executeSoftDelete(
@@ -15,12 +19,29 @@ export async function executeSoftDelete(
 		'db.products.softDelete',
 		{ 'db.table': 'products', 'db.operation': 'update' },
 		async () => {
-			const [row] = await db
-				.update(products)
-				.set({ deletedAt: new Date(), status: 'archived' })
-				.where(storeFilter(id, storeId))
-				.returning({ id: products.id });
-			return !!row;
+			return db.transaction(async (tx) => {
+				const timestamp = Date.now().toString();
+				const [row] = await tx
+					.update(products)
+					.set({
+						deletedAt: new Date(),
+						status: 'archived',
+						slug: sql`concat(${products.slug}, '.archive.', ${timestamp})`,
+					})
+					.where(storeFilter(id, storeId))
+					.returning({ id: products.id });
+
+				if (row) {
+					await tx
+						.update(productVariants)
+						.set({
+							sku: sql`concat(${productVariants.sku}, '.archive.', ${timestamp})`,
+						})
+						.where(eq(productVariants.productId, row.id));
+					return true;
+				}
+				return false;
+			});
 		}
 	);
 }

@@ -33,7 +33,7 @@ export type Product = z.infer<typeof ProductSchema>;
 export const ProductImageSchema = z.object({
 	id: z.uuid(),
 	productId: z.uuid(),
-	url: z.string().max(2048),
+	url: z.url().max(2048),
 	altText: z.string().max(255).nullable().optional(),
 	sortOrder: z.number().int(),
 	createdAt: z.iso.datetime(),

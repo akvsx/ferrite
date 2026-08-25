@@ -14,6 +14,7 @@ export * from './products/create-product.zodschema';
 export * from './products/get-products.zodschema';
 export * from './products/product.zodschema';
 export * from './products/update-product.zodschema';
+export * from './products/update-variant.zodschema';
 export * from './storefront-users/storefront-user.zodschema';
 export * from './storefront-users/update-storefront-user.zodschema';
 export * from './users/list-users.zodschema';

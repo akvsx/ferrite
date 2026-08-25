@@ -10,6 +10,7 @@ import {
 	Controller,
 	Get,
 	Inject,
+	InternalServerErrorException,
 	NotFoundException,
 	Param,
 	ParseUUIDPipe,
@@ -67,7 +68,7 @@ export class ProductStorefrontController {
 			});
 
 			if (result.isErr()) {
-				throw new NotFoundException('Failed to get products');
+				throw new InternalServerErrorException('Failed to list products');
 			}
 			return {
 				...result.value,

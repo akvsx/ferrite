@@ -49,7 +49,8 @@ export async function executeUpdateProduct(
 	if (!updatedRow) return null;
 
 	// Replace images if provided
-	if (input.images !== undefined) {
+	const images = input.images;
+	if (images !== undefined) {
 		await traceDbOp(
 			tracer,
 			'db.product_images.delete',
@@ -61,7 +62,7 @@ export async function executeUpdateProduct(
 				executor.delete(productImages).where(eq(productImages.productId, id))
 		);
 
-		if (input.images.length > 0) {
+		if (images.length > 0) {
 			await traceDbOp(
 				tracer,
 				'db.product_images.insert',
@@ -71,7 +72,7 @@ export async function executeUpdateProduct(
 				},
 				() =>
 					executor.insert(productImages).values(
-						input.images!.map((img, idx) => ({
+						images.map((img, idx) => ({
 							productId: id,
 							url: img.url,
 							altText: img.altText,
@@ -82,16 +83,56 @@ export async function executeUpdateProduct(
 		}
 	}
 
-	// Replace variants if provided (cascade deletes labels + images via FK)
+	// Upsert variants if provided (identity-preserving: update/insert/delete)
 	if (input.variants !== undefined) {
-		// Get existing variant IDs for cascade cleanup
+		// 1. Fetch existing variants for this product
 		const existingVariants = await executor
-			.select({ id: productVariants.id })
+			.select({ id: productVariants.id, sku: productVariants.sku })
 			.from(productVariants)
 			.where(eq(productVariants.productId, id));
 
-		if (existingVariants.length > 0) {
-			const variantIds = existingVariants.map((v) => v.id);
+		const existingById = new Map(existingVariants.map((v) => [v.id, v]));
+		const existingBySku = new Map(existingVariants.map((v) => [v.sku, v]));
+
+		// 2. Partition input into updates vs inserts
+		const toUpdate: {
+			existingId: string;
+			variant: (typeof input.variants)[number];
+			idx: number;
+		}[] = [];
+		const toInsert: {
+			variant: (typeof input.variants)[number];
+			idx: number;
+		}[] = [];
+		const matchedExistingIds = new Set<string>();
+
+		for (const [idx, variant] of input.variants.entries()) {
+			let matchedId: string | undefined;
+
+			// Match by id first
+			if (variant.id && existingById.has(variant.id)) {
+				matchedId = variant.id;
+			}
+			// Fallback: match by sku
+			if (!matchedId) {
+				const bySku = existingBySku.get(variant.sku);
+				if (bySku) matchedId = bySku.id;
+			}
+
+			if (matchedId) {
+				matchedExistingIds.add(matchedId);
+				toUpdate.push({ existingId: matchedId, variant, idx });
+			} else {
+				toInsert.push({ variant, idx });
+			}
+		}
+
+		// 3. Delete variants absent from input (cascade removes inventory_items via FK)
+		const removedIds = existingVariants
+			.filter((v) => !matchedExistingIds.has(v.id))
+			.map((v) => v.id);
+
+		if (removedIds.length > 0) {
 			// Delete labels and images first (explicit for clarity, FK cascade would handle it)
 			await traceDbOp(
 				tracer,
@@ -103,7 +144,7 @@ export async function executeUpdateProduct(
 				() =>
 					executor
 						.delete(variantLabels)
-						.where(inArray(variantLabels.variantId, variantIds))
+						.where(inArray(variantLabels.variantId, removedIds))
 			);
 			await traceDbOp(
 				tracer,
@@ -115,25 +156,116 @@ export async function executeUpdateProduct(
 				() =>
 					executor
 						.delete(variantImages)
-						.where(inArray(variantImages.variantId, variantIds))
+						.where(inArray(variantImages.variantId, removedIds))
+			);
+			await traceDbOp(
+				tracer,
+				'db.product_variants.delete',
+				{
+					'db.table': 'product_variants',
+					'db.operation': 'delete',
+				},
+				() =>
+					executor
+						.delete(productVariants)
+						.where(inArray(productVariants.id, removedIds))
 			);
 		}
 
-		await traceDbOp(
-			tracer,
-			'db.product_variants.delete',
-			{
-				'db.table': 'product_variants',
-				'db.operation': 'delete',
-			},
-			() =>
-				executor
-					.delete(productVariants)
-					.where(eq(productVariants.productId, id))
-		);
+		// 4. Update existing variants in place
+		for (const { existingId, variant, idx } of toUpdate) {
+			await traceDbOp(
+				tracer,
+				'db.product_variants.update',
+				{
+					'db.table': 'product_variants',
+					'db.operation': 'update',
+				},
+				() =>
+					executor
+						.update(productVariants)
+						.set({
+							sku: variant.sku,
+							name: variant.name,
+							price: variant.price,
+							compareAtPrice: variant.compareAtPrice,
+							costPrice: variant.costPrice,
+							thumbnailUrl: variant.thumbnailUrl,
+							status: variant.status,
+							sortOrder: variant.sortOrder ?? idx,
+							updatedAt: new Date(),
+						})
+						.where(eq(productVariants.id, existingId))
+			);
 
-		// Re-insert variants with labels and images
-		for (const [idx, variant] of input.variants.entries()) {
+			// Replace labels (value objects — no external dependents)
+			await traceDbOp(
+				tracer,
+				'db.variant_labels.delete',
+				{
+					'db.table': 'variant_labels',
+					'db.operation': 'delete',
+				},
+				() =>
+					executor
+						.delete(variantLabels)
+						.where(eq(variantLabels.variantId, existingId))
+			);
+			if (variant.labels.length > 0) {
+				await traceDbOp(
+					tracer,
+					'db.variant_labels.insert',
+					{
+						'db.table': 'variant_labels',
+						'db.operation': 'insert',
+					},
+					() =>
+						executor.insert(variantLabels).values(
+							variant.labels.map((l) => ({
+								variantId: existingId,
+								labelName: l.labelName,
+								labelValue: l.labelValue,
+							}))
+						)
+				);
+			}
+
+			// Replace images (value objects — no external dependents)
+			await traceDbOp(
+				tracer,
+				'db.variant_images.delete',
+				{
+					'db.table': 'variant_images',
+					'db.operation': 'delete',
+				},
+				() =>
+					executor
+						.delete(variantImages)
+						.where(eq(variantImages.variantId, existingId))
+			);
+			if (variant.images.length > 0) {
+				await traceDbOp(
+					tracer,
+					'db.variant_images.insert',
+					{
+						'db.table': 'variant_images',
+						'db.operation': 'insert',
+					},
+					() =>
+						executor.insert(variantImages).values(
+							variant.images.map((img, imgIdx) => ({
+								variantId: existingId,
+								url: img.url,
+								altText: img.altText,
+								sortOrder: img.sortOrder ?? imgIdx,
+							}))
+						)
+				);
+			}
+		}
+
+		// 5. Insert new variants
+		for (const { variant, idx } of toInsert) {
 			const [variantRow] = await traceDbOp(
 				tracer,
 				'db.product_variants.insert',
@@ -215,6 +347,7 @@ export async function executeUpdateProduct(
 		);
 
 		if (input.categoryIds.length > 0) {
+			const categoryIds = input.categoryIds;
 			await traceDbOp(
 				tracer,
 				'db.product_categories.insert',
@@ -224,7 +357,7 @@ export async function executeUpdateProduct(
 				},
 				() =>
 					executor.insert(productCategories).values(
-						input.categoryIds!.map((catId) => ({
+						categoryIds.map((catId) => ({
 							productId: id,
 							categoryId: catId,
 						}))
