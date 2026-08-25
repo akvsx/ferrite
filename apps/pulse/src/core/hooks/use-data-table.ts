@@ -6,6 +6,7 @@ import {
 	columnVisibilityFeature,
 	createExpandedRowModel,
 	createFilteredRowModel,
+	createPaginatedRowModel,
 	createSortedRowModel,
 	type ExpandedState,
 	type OnChangeFn,
@@ -31,6 +32,7 @@ const dataTableFeatures = tableFeatures({
 	expandedRowModel: createExpandedRowModel(),
 	sortedRowModel: createSortedRowModel(),
 	filteredRowModel: createFilteredRowModel(),
+	paginatedRowModel: createPaginatedRowModel(),
 	sortFns: { basic: sortFn_basic },
 });
 
