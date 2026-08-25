@@ -64,7 +64,6 @@ export const products = pgTable(
 		slug: varchar('slug', { length: 255 }).notNull(),
 		description: text('description'),
 		status: productStatusEnum('status').notNull().default('draft'),
-		isActive: boolean('is_active').notNull().default(true),
 		createdAt: timestamp('created_at', { withTimezone: true })
 			.notNull()
 			.defaultNow(),
@@ -81,7 +80,7 @@ export const products = pgTable(
 		// Active, non-deleted products (listing page)
 		index('idx_products_active')
 			.on(t.storeId, t.createdAt)
-			.where(sql`is_active = true AND deleted_at IS NULL`),
+			.where(sql`status = 'active' AND deleted_at IS NULL`),
 	]
 );
 

@@ -1,6 +1,7 @@
 'use client';
 
 import type { Row } from '@tanstack/react-table';
+import type { DataTableFeatures } from '@/core/hooks/use-data-table';
 import { DataTable } from '@/presentation/primitives/data-table';
 import type { Order } from '../lib/orders-mock';
 import { orders } from '../lib/orders-mock';
@@ -16,7 +17,9 @@ import { OrdersContextMenu } from './table-context-menu';
 // Ensure order screens are registered in the sheet router.
 import '../sheets/order-routes';
 
-const getRowClassName = (row: Row<Order>): string | undefined =>
+const getRowClassName = (
+	row: Row<DataTableFeatures, Order>
+): string | undefined =>
 	row.original.transactionStatus === 'failed' ||
 	row.original.status === 'cancelled'
 		? 'opacity-60 focus:opacity-80 grayscale-25 hover:grayscale-0 focus:grayscale-0 transition-all duration-200'

@@ -1,14 +1,14 @@
 import type {
 	ColumnFiltersState,
+	ColumnVisibilityState,
 	ExpandedState,
-	VisibilityState,
 } from '@tanstack/react-table';
 import { create } from 'zustand';
 
 interface OrdersTableState {
 	expandedState: ExpandedState;
 	columnFilters: ColumnFiltersState;
-	columnVisibility: VisibilityState;
+	columnVisibility: ColumnVisibilityState;
 }
 
 export const useOrdersTableStore = create<OrdersTableState>()(() => ({
@@ -43,8 +43,8 @@ export const updateOrdersTableExpanded = (
 
 export const updateOrdersTableVisibility = (
 	visibilityOrUpdater:
-		| VisibilityState
-		| ((old: VisibilityState) => VisibilityState)
+		| ColumnVisibilityState
+		| ((old: ColumnVisibilityState) => ColumnVisibilityState)
 ) => {
 	useOrdersTableStore.setState((state) => ({
 		columnVisibility:

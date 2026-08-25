@@ -9,8 +9,8 @@ export const CategorySchema = z.object({
 	description: z.string().nullable().optional(),
 	sortOrder: z.number().int(),
 	isActive: z.boolean(),
-	createdAt: z.date(),
-	updatedAt: z.date(),
+	createdAt: z.iso.datetime(),
+	updatedAt: z.iso.datetime(),
 });
 
 export type Category = z.infer<typeof CategorySchema>;

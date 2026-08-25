@@ -9,10 +9,11 @@ import {
 	TableHeader,
 	TableRow,
 } from '@presentation/primitives/table';
-import { flexRender, type Row } from '@tanstack/react-table';
+import type { Row, RowData } from '@tanstack/react-table';
 import { ChevronRight } from 'lucide-react';
 import type { ReactNode } from 'react';
 import {
+	type DataTableFeatures,
 	type UseDataTableProps,
 	useDataTable,
 } from '@/core/hooks/use-data-table';
@@ -22,25 +23,25 @@ import { Button } from './button';
 
 /** Render prop for an optional row-level context menu.
  *  Returns the ContextMenuContent to display when a row is right-clicked. */
-export type RowContextMenuRenderer<TData> = (props: {
+export type RowContextMenuRenderer<TData extends RowData> = (props: {
 	rowId: string;
-	row: Row<TData>;
+	row: Row<DataTableFeatures, TData>;
 }) => ReactNode;
 
-export interface DataTableProps<TData, TValue>
-	extends UseDataTableProps<TData, TValue> {
-	getRowClassName?: (row: Row<TData>) => string | undefined;
+export interface DataTableProps<TData extends RowData>
+	extends UseDataTableProps<TData> {
+	getRowClassName?: (row: Row<DataTableFeatures, TData>) => string | undefined;
 	/** Optional render prop — when provided, right-clicking any row
 	 *  opens the returned context menu content. */
 	renderRowContextMenu?: RowContextMenuRenderer<TData>;
 }
 
-export function DataTable<TData, TValue>({
+export function DataTable<TData extends RowData>({
 	getRowClassName,
 	expandable = true,
 	renderRowContextMenu,
 	...props
-}: DataTableProps<TData, TValue>) {
+}: DataTableProps<TData>) {
 	const { table, getRowProps } = useDataTable({ expandable, ...props });
 
 	const { isHydrated } = useHydration();
@@ -55,12 +56,9 @@ export function DataTable<TData, TValue>({
 							{headerGroup.headers.map((header) => {
 								return (
 									<TableHead key={header.id}>
-										{header.isPlaceholder
-											? null
-											: flexRender(
-													header.column.columnDef.header,
-													header.getContext()
-												)}
+										{header.isPlaceholder ? null : (
+											<table.FlexRender header={header} />
+										)}
 									</TableHead>
 								);
 							})}
@@ -103,7 +101,7 @@ export function DataTable<TData, TValue>({
 											/>
 										</div>
 									)}
-									{flexRender(cell.column.columnDef.cell, cell.getContext())}
+									<table.FlexRender cell={cell} />
 								</TableCell>
 							));
 
