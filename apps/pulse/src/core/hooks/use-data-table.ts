@@ -20,7 +20,7 @@ import {
 	tableFeatures,
 	useTable,
 } from '@tanstack/react-table';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 const dataTableFeatures = tableFeatures({
 	rowExpandingFeature,
@@ -101,13 +101,27 @@ export function useDataTable<TData extends RowData>({
 		},
 	});
 
+	const rows = table.getRowModel().rows;
+	const isFocusedRowVisible =
+		focusedRowId !== null && rows.some((row) => row.id === focusedRowId);
+	const effectiveFocusedRowId = isFocusedRowVisible
+		? focusedRowId
+		: (rows[0]?.id ?? null);
+
+	useEffect(() => {
+		if (focusedRowId !== null && !isFocusedRowVisible) {
+			setFocusedRowId(null);
+		}
+	}, [focusedRowId, isFocusedRowVisible]);
+
 	const getRowProps = useCallback(
 		(rowId: string, index: number, toggleExpanded: () => void) => {
+			const isFocused =
+				effectiveFocusedRowId === rowId ||
+				(effectiveFocusedRowId === null && index === 0);
+
 			return {
-				tabIndex:
-					focusedRowId === rowId || (focusedRowId === null && index === 0)
-						? 0
-						: -1,
+				tabIndex: isFocused ? 0 : -1,
 				onFocus: () => setFocusedRowId(rowId),
 				onKeyDown: (e: React.KeyboardEvent<HTMLElement>) => {
 					if (e.key === 'Enter') {
@@ -132,7 +146,7 @@ export function useDataTable<TData extends RowData>({
 				},
 			};
 		},
-		[focusedRowId]
+		[effectiveFocusedRowId]
 	);
 
 	return {
