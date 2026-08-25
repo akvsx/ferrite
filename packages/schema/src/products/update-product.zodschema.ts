@@ -1,13 +1,9 @@
 import { z } from 'zod/v4';
-import {
-	CreateProductImageSchema,
-	CreateVariantSchema,
-} from './create-product.zodschema';
+import { CreateProductImageSchema } from './create-product.zodschema';
 import { productStatus } from './product.zodschema';
+import { UpdateVariantSchema } from './update-variant.zodschema';
 
-// ─────────────────────────────────────────
 // UPDATE PRODUCT INPUT
-// ─────────────────────────────────────────
 
 export const UpdateProductInputSchema = z.object({
 	// Product fields (all optional for partial update)
@@ -17,8 +13,9 @@ export const UpdateProductInputSchema = z.object({
 	status: productStatus.optional(),
 	supplierId: z.uuid().nullable().optional(),
 
-	// Child entities — full-replace when provided, untouched when omitted
-	variants: z.array(CreateVariantSchema).min(1).optional(),
+	// Child entities — declarative upsert when provided, untouched when omitted
+	// Variants matched by id (preferred) or sku (fallback). Absent = deleted.
+	variants: z.array(UpdateVariantSchema).min(1).optional(),
 	images: z.array(CreateProductImageSchema).optional(),
 	categoryIds: z.array(z.uuid()).optional(),
 });
