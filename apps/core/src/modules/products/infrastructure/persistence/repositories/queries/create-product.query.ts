@@ -1,6 +1,9 @@
 import type { ITransactionContext } from '@common/interfaces/unit-of-work.interface';
 import { DrizzleUnitOfWork } from '@core/database/drizzle-unit-of-work';
-import { productCategories } from '@core/database/schema/category.schema';
+import {
+	categories,
+	productCategories,
+} from '@core/database/schema/category.schema';
 import {
 	productImages,
 	products,
@@ -11,6 +14,8 @@ import {
 import { traceDbOp } from '@core/database/utils/trace-db-op.util';
 import type { ITracer } from '@core/tracer';
 import type { CreateProductInput, ProductDetail } from '@ferrite/schema';
+import { CategoryNotFoundError } from '@modules/categories/domain/errors/category-not-found.error';
+import { and, eq, inArray } from 'drizzle-orm';
 import { ProductMapper } from '../../mappers/product.mapper';
 import { groupBy } from './product-utils';
 
@@ -150,27 +155,59 @@ export async function executeCreateProduct(
 	}
 
 	// Insert category associations
-	const categoryRows =
-		input.categoryIds.length > 0
-			? await traceDbOp(
-					tracer,
-					'db.product_categories.insert',
-					{
-						'db.table': 'product_categories',
-						'db.operation': 'insert',
-					},
-					() =>
-						executor
-							.insert(productCategories)
-							.values(
-								input.categoryIds.map((catId) => ({
-									productId,
-									categoryId: catId,
-								}))
-							)
-							.returning()
-				)
-			: [];
+	let categoryRows: (typeof productCategories.$inferSelect)[] = [];
+
+	// dedup
+	const uniqueCategoryIds = Array.from(new Set(input.categoryIds));
+
+	if (uniqueCategoryIds.length > 0) {
+		const validCategories = await traceDbOp(
+			tracer,
+			'db.categories.select',
+			{
+				'db.table': 'categories',
+				'db.operation': 'select',
+			},
+			() =>
+				executor
+					.select({ id: categories.id })
+					.from(categories)
+					.where(
+						and(
+							inArray(categories.id, uniqueCategoryIds),
+							eq(categories.storeId, storeId)
+						)
+					)
+		);
+
+		const validCategoryIds = new Set(validCategories.map((c) => c.id));
+		const invalidCategoryId = uniqueCategoryIds.find(
+			(id) => !validCategoryIds.has(id)
+		);
+
+		if (invalidCategoryId) {
+			throw new CategoryNotFoundError(invalidCategoryId);
+		}
+
+		categoryRows = await traceDbOp(
+			tracer,
+			'db.product_categories.insert',
+			{
+				'db.table': 'product_categories',
+				'db.operation': 'insert',
+			},
+			() =>
+				executor
+					.insert(productCategories)
+					.values(
+						uniqueCategoryIds.map((catId) => ({
+							productId,
+							categoryId: catId,
+						}))
+					)
+					.returning()
+		);
+	}
 
 	// Build aggregate
 	const labelsByVariantId = groupBy(allLabelRows, 'variantId');
