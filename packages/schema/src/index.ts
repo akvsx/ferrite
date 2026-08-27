@@ -6,6 +6,7 @@ export * from './common/pagination.zodschema';
 export * from './currencies/create-currency.zodschema';
 export * from './currencies/get-currencies.zodschema';
 export * from './currencies/update-currency.zodschema';
+export * from './inventory';
 export * from './notification/email.zodschema';
 export * from './onboarding/onboarding-session.zodschema';
 export * from './onboarding/onboarding-store.zodschema';
