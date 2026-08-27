@@ -20,3 +20,4 @@ export * from './storefront-users/storefront-user.zodschema';
 export * from './storefront-users/update-storefront-user.zodschema';
 export * from './users/list-users.zodschema';
 export * from './users/user-profile.zodschema';
+export * from './warehouse';
