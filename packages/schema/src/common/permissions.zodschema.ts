@@ -17,7 +17,7 @@ const PERMISSION_MANIFEST = {
 	store: CRUD,
 	orders: [...CRUD, 'refund', 'cancel', 'fulfill'],
 	returns: ['read', 'update', 'approve', 'reject'],
-	inventory: ['read', 'update', 'adjust', 'transfer'],
+	inventory: ['read', 'create', 'update', 'delete', 'adjust', 'transfer'],
 	reports: READ_ONLY,
 	logs: READ_ONLY,
 	settings: ['read', 'update'],

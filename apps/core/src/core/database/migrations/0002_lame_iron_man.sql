@@ -1,0 +1,2 @@
+ALTER TYPE "public"."permission_key" ADD VALUE 'inventory.create' BEFORE 'inventory.update';--> statement-breakpoint
+ALTER TYPE "public"."permission_key" ADD VALUE 'inventory.delete' BEFORE 'inventory.adjust';
