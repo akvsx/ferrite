@@ -1,77 +1,126 @@
 import type { PaginatedResponse } from '@ferrite/schema/common/pagination.zodschema';
 import type { SQL } from 'drizzle-orm';
-import { and, asc, sql } from 'drizzle-orm';
-import type { PgColumn, PgTable } from 'drizzle-orm/pg-core';
+import { and, asc, eq, sql } from 'drizzle-orm';
+import type { PgColumn } from 'drizzle-orm/pg-core';
 
-// ─────────────────────────────────────────
 // Query helpers
-// ─────────────────────────────────────────
 
 export interface CursorPaginationOpts {
-	/** The table being queried (used for the cursor subquery) */
-	table: PgTable;
 	/** The primary-key column (e.g. `categories.id`) */
 	idColumn: PgColumn;
 	/** The column to sort + paginate by (e.g. `categories.createdAt`) */
 	sortColumn: PgColumn;
-	/** Opaque cursor from the client (the last item's ID) */
+	/**
+	 * Cursor encoding the last item from the previous page, as
+	 * base64 JSON of `{ id, sortValue }`. Validated as a UUID at the
+	 * API/schema boundary.
+	 */
 	cursor?: string;
 	/** Page size */
 	limit: number;
 	/** Additional WHERE conditions (e.g. storeId filter) */
 	filters?: SQL[];
+	/** Tenant scoping column (e.g. `categories.storeId`) — required, not optional */
+	tenantColumn: PgColumn;
+	/** The tenant id to scope by (from the authenticated session, never client input) */
+	tenantId: string;
 }
+
+interface CursorData {
+	id: string;
+	sortValue: unknown;
+}
+
+const isValidCursorData = (value: unknown): value is CursorData =>
+	typeof value === 'object' &&
+	value !== null &&
+	typeof (value as CursorData).id === 'string' &&
+	(value as CursorData).id.length > 0 &&
+	(value as CursorData).sortValue !== undefined &&
+	(value as CursorData).sortValue !== null;
 
 /**
  * Build cursor-pagination WHERE + ORDER + LIMIT clauses.
  *
- * When a cursor (item ID) is provided, generates a subquery:
- * `sortColumn > (SELECT sortColumn FROM table WHERE idColumn = cursor)`
+ * The cursor is opaque base64-encoded JSON of `{ id, sortValue }`
+ * produced by `buildPaginatedResponse` for the previous page. It is
+ * decoded directly (no extra DB roundtrip) and used in a tuple
+ * comparison against the sort/id columns:
  *
- * Single query — no extra roundtrip.
+ *   (sortColumn, idColumn) > (cursor.sortValue, cursor.id)
+ *
+ * The tuple comparison (rather than `sortColumn > cursor.sortValue`
+ * alone) is what makes pagination correct when `sortColumn` has
+ * duplicate values - `idColumn` acts as a deterministic tiebreaker,
+ * which is why `orderBy` must sort by the same two columns in the
+ * same order.
  */
 export const cursorPaginationClauses = (opts: CursorPaginationOpts) => {
-	const { table, idColumn, sortColumn, cursor, limit, filters = [] } = opts;
+	const {
+		idColumn,
+		sortColumn,
+		cursor,
+		limit,
+		filters = [],
+		tenantColumn,
+		tenantId,
+	} = opts;
 
-	const conditions: SQL[] = [...filters];
+	// Tenant condition is built here, not left to the caller to remember.
+	const conditions: SQL[] = [eq(tenantColumn, tenantId), ...filters];
+
 	if (cursor) {
-		const filterSql = filters.length > 0 ? sql` AND ${and(...filters)}` : sql``;
-		const cursorSubquery = sql`(SELECT ${sortColumn} FROM ${table} WHERE ${idColumn} = ${cursor}${filterSql})`;
+		let decoded: unknown;
+		try {
+			decoded = JSON.parse(Buffer.from(cursor, 'base64').toString('utf8'));
+		} catch {
+			throw new Error('Invalid cursor format');
+		}
+
+		if (!isValidCursorData(decoded)) {
+			throw new Error('Invalid cursor format');
+		}
+
 		conditions.push(
-			sql`(${sortColumn}, ${idColumn}) > (${cursorSubquery}, ${cursor})`
+			sql`(${sortColumn}, ${idColumn}) > (${decoded.sortValue}, ${decoded.id})`
 		);
 	}
 
 	return {
-		where: conditions.length > 0 ? and(...conditions) : undefined,
+		where: and(...conditions), // always non-empty now — tenantColumn guarantees it
 		orderBy: [asc(sortColumn), asc(idColumn)],
 		queryLimit: limit + 1,
 	};
 };
 
-// ─────────────────────────────────────────
 // Response builder
-// ─────────────────────────────────────────
 
 /**
  * Slice the over-fetched rows and build a `PaginatedResponse`.
  *
- * @param rows     - Raw DB rows (fetched with `limit + 1`)
- * @param limit    - Requested page size
- * @param mapItem  - Transform a row into the domain type
- * @param getId    - Extract the item's ID from the last raw row (used as nextCursor)
+ * @param rows          - Raw DB rows (fetched with `limit + 1`)
+ * @param limit         - Requested page size
+ * @param mapItem       - Transform a row into the domain type
+ * @param getCursorData - Extract `{ id, sortValue }` from the last raw
+ *                        row of the page; encoded as the `nextCursor`
  */
 export const buildPaginatedResponse = <TRow, TDomain>(
 	rows: TRow[],
 	limit: number,
 	mapItem: (row: TRow) => TDomain,
-	getId: (row: TRow) => string
+	getCursorData: (row: TRow) => CursorData
 ): PaginatedResponse<TDomain> => {
 	const hasMore = rows.length > limit;
 	const items = hasMore ? rows.slice(0, -1) : rows;
 
+	let nextCursor: string | undefined;
+	if (hasMore) {
+		const cursorData = getCursorData(items[items.length - 1]);
+		nextCursor = Buffer.from(JSON.stringify(cursorData)).toString('base64');
+	}
+
 	return {
 		items: items.map(mapItem),
-		nextCursor: hasMore ? getId(items[items.length - 1]) : undefined,
+		nextCursor,
 	};
 };
