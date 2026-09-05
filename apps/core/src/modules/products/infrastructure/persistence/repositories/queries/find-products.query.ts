@@ -108,12 +108,13 @@ export async function executeFindByStoreId(
 			}
 
 			const { where, orderBy, queryLimit } = cursorPaginationClauses({
-				table: products,
 				idColumn: products.id,
 				sortColumn: products.createdAt,
 				cursor: query.cursor,
 				limit: query.limit ?? 20,
 				filters,
+				tenantColumn: products.storeId,
+				tenantId: storeId,
 			});
 
 			const rows = await db
@@ -182,9 +183,17 @@ export async function executeFindByStoreId(
 				)
 			);
 
+			let nextCursor: string | undefined;
+			if (hasMore) {
+				const lastRow = pageRows[pageRows.length - 1];
+				nextCursor = Buffer.from(
+					JSON.stringify({ id: lastRow.id, sortValue: lastRow.createdAt })
+				).toString('base64');
+			}
+
 			return {
 				items,
-				nextCursor: hasMore ? pageRows[pageRows.length - 1].id : undefined,
+				nextCursor,
 			};
 		}
 	);
