@@ -15,6 +15,7 @@ const PERMISSION_MANIFEST = {
 	customers: CRUD,
 	staff: CRUD,
 	store: CRUD,
+	warehouses: CRUD,
 	orders: [...CRUD, 'refund', 'cancel', 'fulfill'],
 	returns: ['read', 'update', 'approve', 'reject'],
 	inventory: ['read', 'create', 'update', 'delete', 'adjust', 'transfer'],

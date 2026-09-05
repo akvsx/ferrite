@@ -36,6 +36,7 @@ export const warehouses = pgTable(
 		updatedAt: timestamp('updated_at', { withTimezone: true })
 			.notNull()
 			.defaultNow(),
+		deletedAt: timestamp('deleted_at', { withTimezone: true }),
 	},
 	(t) => [
 		uniqueIndex('uq_warehouses_store_name').on(t.storeId, t.name),
