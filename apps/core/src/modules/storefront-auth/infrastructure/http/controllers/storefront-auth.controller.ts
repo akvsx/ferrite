@@ -2,7 +2,7 @@ import { randomBytes } from 'node:crypto';
 import { AllowUnverified } from '@auth/infrastructure/http/decorators/allow-unverified.decorator';
 import { PublicRoute } from '@common/decorators/public-route.decorator';
 import type { Request } from '@common/types/request';
-import type { FerriteConfig } from '@core/config/ferrite.schema';
+import { loadConfig } from '@common/utils/load-config';
 import { AuthStep } from '@ferrite/schema/storefront-auth/auth-step';
 import { extractCookie } from '@libs/http/extractCookie';
 import { UseRealm } from '@modules/auth';
@@ -137,9 +137,9 @@ export class StorefrontAuthController {
 		private readonly forgotPasswordUseCase: IStorefrontForgotPassword,
 		@Inject(STOREFRONT_RESET_PASSWORD_UC)
 		private readonly resetPasswordUseCase: IStorefrontResetPassword,
-		config: ConfigService
+		private readonly config: ConfigService
 	) {
-		const ferriteConfig = config.getOrThrow<FerriteConfig>('ferrite');
+		const ferriteConfig = loadConfig(this.config);
 		this.cookieName = ferriteConfig.storefrontAuth.session.cookieName;
 		this.sessionMaxAgeS = Math.floor(
 			ferriteConfig.storefrontAuth.session.absoluteLifetimeMs / 1000
