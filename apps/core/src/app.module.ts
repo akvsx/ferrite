@@ -8,6 +8,7 @@ import { AuthModule } from '@modules/auth/auth.module';
 import { CategoriesModule } from '@modules/categories/categories.module';
 import { CurrencyModule } from '@modules/currency';
 import { HealthModule } from '@modules/health/health.module';
+import { InventoryModule } from '@modules/inventory/inventory.module';
 import { OnboardingModule } from '@modules/onboarding/onboarding.module';
 import { UsersModule } from '@modules/platform-users/users.module';
 import { ProductsModule } from '@modules/products/products.module';
@@ -16,6 +17,7 @@ import { StoreModule } from '@modules/store';
 import { StorefrontAuthModule } from '@modules/storefront-auth';
 import { StorefrontCsrfGuard } from '@modules/storefront-auth/infrastructure/http/guards/storefront-csrf.guard';
 import { StorefrontUsersModule } from '@modules/storefront-users';
+import { WarehouseModule } from '@modules/warehouse/warehouse.module';
 import { WebhooksModule } from '@modules/webhooks/webhooks.module';
 import { CacheModule } from '@nestjs/cache-manager';
 import { Module } from '@nestjs/common';
@@ -57,6 +59,8 @@ import { ZodSerializerInterceptor, ZodValidationPipe } from 'nestjs-zod';
 		CategoriesModule,
 		ProductsModule,
 		StorefrontUsersModule,
+		WarehouseModule,
+		InventoryModule,
 		RouterModule.register([
 			{
 				path: '/stores/:storeId',
