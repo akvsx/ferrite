@@ -3,8 +3,10 @@ import {
 	AdjustStockInput,
 	AvailabilityResult,
 	CreateInventoryItemInput,
+	InventoryAdjustment,
 	InventoryItemDetail,
 	InventoryLevel,
+	ListInventoryAdjustmentsQuery,
 	ListInventoryQuery,
 	LowStockItem,
 	LowStockQuery,
@@ -16,6 +18,7 @@ import { WarehouseNotFoundError } from '@modules/warehouse/domain/errors';
 import {
 	DuplicateInventoryItemError,
 	InsufficientStockError,
+	InvalidAdjustmentError,
 	InvalidTransferError,
 	InventoryItemNotFoundError,
 	VariantNotFoundError,
@@ -46,6 +49,14 @@ export interface IGetInventoryItemUseCase {
 	}): Promise<Result<InventoryItemDetail, InventoryItemNotFoundError>>;
 }
 
+export const GET_VARIANTS_INVENTORY_UC = Symbol('IGetVariantsInventoryUseCase');
+export interface IGetVariantsInventoryUseCase {
+	execute(input: {
+		variantIds: string[];
+		storeId: string;
+	}): Promise<Result<Record<string, InventoryItemDetail[]>, Error>>;
+}
+
 export const LIST_INVENTORY_ITEMS_UC = Symbol('IListInventoryItemsUseCase');
 export interface IListInventoryItemsUseCase {
 	execute(input: {
@@ -61,7 +72,25 @@ export interface IAdjustStockUseCase {
 		storeId: string;
 		data: AdjustStockInput;
 	}): Promise<
-		Result<InventoryLevel, InventoryItemNotFoundError | InsufficientStockError>
+		Result<
+			InventoryLevel,
+			| InventoryItemNotFoundError
+			| InsufficientStockError
+			| InvalidAdjustmentError
+		>
+	>;
+}
+
+export const LIST_INVENTORY_ADJUSTMENTS_UC = Symbol(
+	'IListInventoryAdjustmentsUseCase'
+);
+export interface IListInventoryAdjustmentsUseCase {
+	execute(input: {
+		storeId: string;
+		inventoryItemId: string;
+		query: ListInventoryAdjustmentsQuery;
+	}): Promise<
+		Result<PaginatedResponse<InventoryAdjustment>, InventoryItemNotFoundError>
 	>;
 }
 
