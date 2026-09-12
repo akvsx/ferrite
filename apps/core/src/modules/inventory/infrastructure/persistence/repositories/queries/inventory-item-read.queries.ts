@@ -4,10 +4,14 @@ import {
 	inventoryLevels,
 	warehouses,
 } from '@core/database/schema/inventory.schema';
+import {
+	buildPaginatedResponse,
+	cursorPaginationClauses,
+} from '@core/database/utils/cursor-pagination.util';
 import { traceDbOp } from '@core/database/utils/trace-db-op.util';
 import type { ITracer } from '@core/tracer';
-import type { ListInventoryQuery } from '@ferrite/schema';
-import { and, eq, sql } from 'drizzle-orm';
+import type { InventoryItemDetail, ListInventoryQuery } from '@ferrite/schema';
+import { and, eq, inArray, type SQL, sql } from 'drizzle-orm';
 import { InventoryItemMapper } from '../../mappers/inventory-item.mapper';
 
 export async function executeFindInventoryItemByIdAndStore(
@@ -43,55 +47,49 @@ export async function executeListInventoryByWarehouse(
 	storeId: string,
 	query: ListInventoryQuery
 ) {
-	const conditions = [
-		eq(inventoryItems.warehouseId, warehouseId),
-		eq(warehouses.storeId, storeId),
-	];
-	if (query.variantId)
-		conditions.push(eq(inventoryItems.variantId, query.variantId));
-	if (query.search)
-		conditions.push(
-			sql`${inventoryItems.batchNumber} ILIKE ${`%${query.search}%`}`
-		);
-	const whereClause = and(...conditions);
-	const [data, [{ count }]] = await Promise.all([
-		traceDbOp(
-			tracer,
-			'db.inventory_items.list_by_warehouse',
-			{ 'db.table': 'inventory_items', 'db.operation': 'select' },
-			() =>
-				db
-					.select({ item: inventoryItems, level: inventoryLevels })
-					.from(inventoryItems)
-					.innerJoin(warehouses, eq(inventoryItems.warehouseId, warehouses.id))
-					.innerJoin(
-						inventoryLevels,
-						eq(inventoryItems.id, inventoryLevels.inventoryItemId)
-					)
-					.where(whereClause)
-					.limit(query.limit ?? 20)
-		),
-		traceDbOp(
-			tracer,
-			'db.inventory_items.count_by_warehouse',
-			{ 'db.table': 'inventory_items', 'db.operation': 'count' },
-			() =>
-				db
-					.select({
-						count: sql<number>`cast(count(${inventoryItems.id}) as int)`,
-					})
-					.from(inventoryItems)
-					.innerJoin(warehouses, eq(inventoryItems.warehouseId, warehouses.id))
-					.where(whereClause)
-		),
-	]);
-	return {
-		items: data.map((item) =>
-			InventoryItemMapper.toDomainDetail(item.item, item.level)
-		),
-		total: count,
-		limit: query.limit ?? 20,
-	};
+	return traceDbOp(
+		tracer,
+		'db.inventory_items.list_by_warehouse',
+		{ 'db.table': 'inventory_items', 'db.operation': 'select' },
+		async () => {
+			const filters: SQL[] = [eq(inventoryItems.warehouseId, warehouseId)];
+			if (query.variantId)
+				filters.push(eq(inventoryItems.variantId, query.variantId));
+			if (query.search)
+				filters.push(
+					sql`${inventoryItems.batchNumber} ILIKE ${`%${query.search}%`}`
+				);
+
+			const { where, orderBy, queryLimit } = cursorPaginationClauses({
+				idColumn: inventoryItems.id,
+				sortColumn: inventoryItems.createdAt,
+				cursor: query.cursor,
+				limit: query.limit ?? 20,
+				filters,
+				tenantColumn: warehouses.storeId,
+				tenantId: storeId,
+			});
+
+			const rows = await db
+				.select({ item: inventoryItems, level: inventoryLevels })
+				.from(inventoryItems)
+				.innerJoin(warehouses, eq(inventoryItems.warehouseId, warehouses.id))
+				.innerJoin(
+					inventoryLevels,
+					eq(inventoryItems.id, inventoryLevels.inventoryItemId)
+				)
+				.where(where)
+				.orderBy(...orderBy)
+				.limit(queryLimit);
+
+			return buildPaginatedResponse(
+				rows,
+				query.limit ?? 20,
+				(row) => InventoryItemMapper.toDomainDetail(row.item, row.level),
+				(row) => ({ id: row.item.id, sortValue: row.item.createdAt })
+			);
+		}
+	);
 }
 
 export async function executeListInventoryByVariant(
@@ -123,4 +121,50 @@ export async function executeListInventoryByVariant(
 	return rows.map((item) =>
 		InventoryItemMapper.toDomainDetail(item.item, item.level)
 	);
+}
+
+export async function executeListInventoryByVariants(
+	tracer: ITracer,
+	db: TDatabase,
+	variantIds: string[],
+	storeId: string
+): Promise<Record<string, InventoryItemDetail[]>> {
+	if (variantIds.length === 0) return {};
+
+	const rows = await traceDbOp(
+		tracer,
+		'db.inventory_items.list_by_variants',
+		{ 'db.table': 'inventory_items', 'db.operation': 'select' },
+		() => {
+			return db
+				.select({ item: inventoryItems, level: inventoryLevels })
+				.from(inventoryItems)
+				.innerJoin(warehouses, eq(inventoryItems.warehouseId, warehouses.id))
+				.innerJoin(
+					inventoryLevels,
+					eq(inventoryItems.id, inventoryLevels.inventoryItemId)
+				)
+				.where(
+					and(
+						inArray(inventoryItems.variantId, variantIds),
+						eq(warehouses.storeId, storeId)
+					)
+				);
+		}
+	);
+
+	const result: Record<string, InventoryItemDetail[]> = {};
+	for (const id of variantIds) {
+		result[id] = [];
+	}
+
+	for (const row of rows) {
+		const detail = InventoryItemMapper.toDomainDetail(row.item, row.level);
+		if (!result[detail.variantId]) {
+			result[detail.variantId] = [];
+		}
+		result[detail.variantId].push(detail);
+	}
+
+	return result;
 }
