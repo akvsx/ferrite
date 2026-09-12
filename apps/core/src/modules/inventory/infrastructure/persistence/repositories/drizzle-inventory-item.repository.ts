@@ -10,13 +10,15 @@ import type {
 	AdjustmentType,
 	AvailabilityResult,
 	CreateInventoryItemInput,
+	InventoryAdjustment,
 	InventoryItemDetail,
 	InventoryLevel,
+	ListInventoryAdjustmentsQuery,
 	ListInventoryQuery,
 	LowStockItem,
 	LowStockQuery,
+	PaginatedResponse,
 } from '@ferrite/schema';
-import { PaginatedResponse } from '@ferrite/schema';
 import { Inject, Injectable } from '@nestjs/common';
 import type { IInventoryItemRepository } from '../../../domain/ports/inventory-item.repository.port';
 import {
@@ -26,13 +28,17 @@ import {
 import {
 	executeFindInventoryItemByIdAndStore,
 	executeListInventoryByVariant,
+	executeListInventoryByVariants,
 	executeListInventoryByWarehouse,
 } from './queries/inventory-item-read.queries';
 import {
 	executeBulkCreateIfNotExists,
 	executeCreateInventoryItem,
 } from './queries/inventory-item-write.queries';
-import { executeAdjustStock } from './queries/inventory-stock.queries';
+import {
+	executeAdjustStock,
+	executeListAdjustments,
+} from './queries/inventory-stock.queries';
 
 @Injectable()
 export class DrizzleInventoryItemRepository
@@ -104,6 +110,18 @@ export class DrizzleInventoryItemRepository
 		);
 	}
 
+	async listByVariants(
+		variantIds: string[],
+		storeId: string
+	): Promise<Record<string, InventoryItemDetail[]>> {
+		return executeListInventoryByVariants(
+			this.tracer,
+			this.db,
+			variantIds,
+			storeId
+		);
+	}
+
 	async adjustStock(
 		inventoryItemId: string,
 		adjustment: {
@@ -115,6 +133,40 @@ export class DrizzleInventoryItemRepository
 		tx: ITransactionContext
 	): Promise<InventoryLevel | null> {
 		return executeAdjustStock(this.tracer, tx, inventoryItemId, adjustment);
+	}
+
+	async listAdjustments(
+		inventoryItemId: string,
+		_storeId: string, // Not directly used in the query, but guaranteed by the Use Case to be the owner
+		query: ListInventoryAdjustmentsQuery
+	): Promise<PaginatedResponse<InventoryAdjustment>> {
+		return this.tracer.withSpan('db.inventory_adjustments.list', async () => {
+			return executeListAdjustments(this.db, inventoryItemId, query);
+		});
+	}
+
+	async reserveStock(
+		_inventoryItemId: string,
+		_quantity: number,
+		_tx: ITransactionContext
+	): Promise<InventoryLevel | null> {
+		throw new Error('Not implemented, awaiting Orders module');
+	}
+
+	async releaseReservation(
+		_inventoryItemId: string,
+		_quantity: number,
+		_tx: ITransactionContext
+	): Promise<InventoryLevel> {
+		throw new Error('Not implemented, awaiting Orders module');
+	}
+
+	async consumeReservation(
+		_inventoryItemId: string,
+		_quantity: number,
+		_tx: ITransactionContext
+	): Promise<InventoryLevel> {
+		throw new Error('Not implemented, awaiting Orders module');
 	}
 
 	async findLowStock(
