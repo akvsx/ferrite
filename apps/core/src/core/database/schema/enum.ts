@@ -74,7 +74,7 @@ export const inventoryAdjustmentTypeEnum = pgEnum('inventory_adjustment_type', [
 	'restock',
 	'sale',
 	'return',
-	'adjustment',
+	'correction',
 	'damage',
 	'transfer',
 ]);
