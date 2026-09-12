@@ -2,7 +2,7 @@ import type {
 	InventoryItem as DbInventoryItem,
 	InventoryLevel as DbInventoryLevel,
 } from '@core/database/schema/inventory.schema';
-import type { InventoryItemDetail } from '@ferrite/schema';
+import type { InventoryAdjustment, InventoryItemDetail } from '@ferrite/schema';
 
 export class InventoryItemMapper {
 	static toDomainDetail(
@@ -20,6 +20,16 @@ export class InventoryItemMapper {
 				...level,
 				quantityAvailable: level.quantityAvailable ?? 0,
 			},
+		};
+	}
+
+	static toAdjustmentDomain(
+		row: typeof import('@core/database/schema/inventory.schema').inventoryAdjustments.$inferSelect
+	): InventoryAdjustment {
+		return {
+			...row,
+			reason: row.reason ?? undefined,
+			adjustedBy: row.adjustedBy ?? undefined,
 		};
 	}
 }
