@@ -13,9 +13,17 @@ import { createParamDecorator, ExecutionContext } from '@nestjs/common';
  * getMe(@AuthUserParam() user: AuthUser) { … }
  * ```
  */
-export const AuthUserParam = createParamDecorator(
-	(_data: unknown, ctx: ExecutionContext) => {
+const PlatformUserParam = createParamDecorator(
+	(_data: unknown, ctx: ExecutionContext): AuthUser => {
 		const request = ctx.switchToHttp().getRequest();
 		return request.authUser as AuthUser;
 	}
 );
+
+export {
+	/**
+	 * @deprecated Use `PlatformUser` instead.
+	 */
+	PlatformUserParam as AuthUserParam,
+	PlatformUserParam,
+};
