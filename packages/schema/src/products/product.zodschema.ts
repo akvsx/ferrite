@@ -1,4 +1,5 @@
 import { z } from 'zod/v4';
+import { InventoryItemDetailSchema } from '../inventory/inventory-item.zodschema';
 import { decimalString } from '../shared/decimal-string.zodschema';
 
 export const productStatus = z.enum(['draft', 'active', 'archived']);
@@ -80,7 +81,6 @@ export const ProductVariantSchema = z.object({
 	name: z.string().max(255).nullable().optional(),
 	price: decimalString,
 	compareAtPrice: decimalString.nullable().optional(),
-	costPrice: decimalString.nullable().optional(),
 	thumbnailUrl: z.url().max(2048).nullable().optional(),
 	status: productVariantStatus,
 	sortOrder: z.number().int(),
@@ -110,3 +110,20 @@ export const ProductDetailSchema = ProductSchema.extend({
 });
 
 export type ProductDetail = z.infer<typeof ProductDetailSchema>;
+
+// ─────────────────────────────────────────
+// ADMIN PRODUCT DETAIL (with inventory)
+// ─────────────────────────────────────────
+
+export const AdminProductVariantSchema = ProductVariantSchema.extend({
+	costPrice: decimalString.nullable().optional(),
+	inventoryItems: z.array(InventoryItemDetailSchema).optional(),
+});
+
+export type AdminProductVariant = z.infer<typeof AdminProductVariantSchema>;
+
+export const AdminProductDetailSchema = ProductDetailSchema.extend({
+	variants: z.array(AdminProductVariantSchema).default([]),
+});
+
+export type AdminProductDetail = z.infer<typeof AdminProductDetailSchema>;
