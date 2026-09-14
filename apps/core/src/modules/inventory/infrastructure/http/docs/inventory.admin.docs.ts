@@ -69,6 +69,7 @@ export function AdjustStockDocs() {
 				'Adjust stock level for an inventory item (restock, sale, damage, etc.)',
 		}),
 		ApiResponse({ status: 200, description: 'Updated inventory level' }),
+		ApiResponse({ status: 400, description: 'Invalid adjustment input' }),
 		ApiResponse({ status: 404, description: 'Inventory item not found' }),
 		ApiResponse({
 			status: 422,
