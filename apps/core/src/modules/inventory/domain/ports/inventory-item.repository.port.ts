@@ -36,8 +36,9 @@ export interface IInventoryItemRepository {
 	): Promise<PaginatedResponse<InventoryItemDetail>>;
 	listByVariant(
 		variantId: string,
-		storeId: string
-	): Promise<InventoryItemDetail[]>;
+		storeId: string,
+		query: ListInventoryQuery
+	): Promise<PaginatedResponse<InventoryItemDetail>>;
 	listByVariants(
 		variantIds: string[],
 		storeId: string

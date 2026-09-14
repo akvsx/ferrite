@@ -123,14 +123,31 @@ export async function executeListInventoryByVariant(
 	tracer: ITracer,
 	db: TDatabase,
 	variantId: string,
-	storeId: string
+	storeId: string,
+	query: ListInventoryQuery
 ) {
-	const rows = await traceDbOp(
+	return traceDbOp(
 		tracer,
-		'db.inventory_items.list_by_variant',
+		'db.inventory_items.list_by_variant_paginated',
 		{ 'db.table': 'inventory_items', 'db.operation': 'select' },
-		() =>
-			db
+		async () => {
+			const filters: SQL[] = [eq(inventoryItems.variantId, variantId)];
+			if (query.search)
+				filters.push(
+					sql`${inventoryItems.batchNumber} ILIKE ${`%${query.search}%`}`
+				);
+
+			const { where, orderBy, queryLimit } = cursorPaginationClauses({
+				idColumn: inventoryItems.id,
+				sortColumn: inventoryItems.createdAt,
+				cursor: query.cursor,
+				limit: query.limit ?? 20,
+				filters,
+				tenantColumn: warehouses.storeId,
+				tenantId: storeId,
+			});
+
+			const rows = await db
 				.select({ item: inventoryItems, level: inventoryLevels })
 				.from(inventoryItems)
 				.innerJoin(warehouses, eq(inventoryItems.warehouseId, warehouses.id))
@@ -138,15 +155,17 @@ export async function executeListInventoryByVariant(
 					inventoryLevels,
 					eq(inventoryItems.id, inventoryLevels.inventoryItemId)
 				)
-				.where(
-					and(
-						eq(inventoryItems.variantId, variantId),
-						eq(warehouses.storeId, storeId)
-					)
-				)
-	);
-	return rows.map((item) =>
-		InventoryItemMapper.toDomainDetail(item.item, item.level)
+				.where(where)
+				.orderBy(...orderBy)
+				.limit(queryLimit);
+
+			return buildPaginatedResponse(
+				rows,
+				query.limit ?? 20,
+				(row) => InventoryItemMapper.toDomainDetail(row.item, row.level),
+				(row) => ({ id: row.item.id, sortValue: row.item.createdAt })
+			);
+		}
 	);
 }
 

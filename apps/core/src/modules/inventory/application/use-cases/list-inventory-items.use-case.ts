@@ -41,11 +41,12 @@ export class ListInventoryItemsUseCase implements IListInventoryItemsUseCase {
 
 			// If variantId is provided but no warehouseId, list by variant
 			if (input.query.variantId) {
-				const items = await this.inventoryItemRepo.listByVariant(
+				const result = await this.inventoryItemRepo.listByVariant(
 					input.query.variantId,
-					input.storeId
+					input.storeId,
+					input.query
 				);
-				return ok({ items });
+				return ok(result);
 			}
 
 			// Default: requires warehouseId for scoping; return empty if no filter

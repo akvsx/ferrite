@@ -113,13 +113,15 @@ export class DrizzleInventoryItemRepository
 
 	async listByVariant(
 		variantId: string,
-		storeId: string
-	): Promise<InventoryItemDetail[]> {
+		storeId: string,
+		query: ListInventoryQuery
+	): Promise<PaginatedResponse<InventoryItemDetail>> {
 		return executeListInventoryByVariant(
 			this.tracer,
 			this.db,
 			variantId,
-			storeId
+			storeId,
+			query
 		);
 	}
 
