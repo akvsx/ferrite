@@ -79,6 +79,14 @@ export class TransferStockUseCase implements ITransferStockUseCase {
 					);
 				}
 
+				if (source.variantId !== destination.variantId) {
+					return err(
+						new InvalidTransferError(
+							'Source and destination must reference the same variant'
+						)
+					);
+				}
+
 				// Atomic transfer in single UoW
 				return this.uow.execute(async (tx) => {
 					// Decrement source
