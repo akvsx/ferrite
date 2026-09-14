@@ -30,6 +30,7 @@ import {
 	executeListInventoryByVariant,
 	executeListInventoryByVariants,
 	executeListInventoryByWarehouse,
+	executeVariantExistsForStore,
 } from './queries/inventory-item-read.queries';
 import {
 	executeBulkCreateIfNotExists,
@@ -49,6 +50,18 @@ export class DrizzleInventoryItemRepository
 		@Inject(UNIT_OF_WORK) private readonly uow: IUnitOfWork,
 		@Inject(OTEL_TRACER) private readonly tracer: ITracer
 	) {}
+
+	async variantExistsForStore(
+		variantId: string,
+		storeId: string
+	): Promise<boolean> {
+		return executeVariantExistsForStore(
+			this.tracer,
+			this.db,
+			variantId,
+			storeId
+		);
+	}
 
 	async create(
 		input: CreateInventoryItemInput,

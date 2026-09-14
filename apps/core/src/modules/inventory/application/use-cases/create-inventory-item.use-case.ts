@@ -68,6 +68,15 @@ export class CreateInventoryItemUseCase implements ICreateInventoryItemUseCase {
 				return err(new WarehouseNotFoundError(input.data.warehouseId));
 			}
 
+			// Validate variant exists & belongs to store
+			const variantExists = await this.inventoryItemRepo.variantExistsForStore(
+				input.data.variantId,
+				input.storeId
+			);
+			if (!variantExists) {
+				return err(new VariantNotFoundError(input.data.variantId));
+			}
+
 			try {
 				const item = await this.uow.execute((tx) =>
 					this.inventoryItemRepo.create(input.data, tx)

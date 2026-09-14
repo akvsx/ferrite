@@ -5,6 +5,10 @@ import {
 	warehouses,
 } from '@core/database/schema/inventory.schema';
 import {
+	products,
+	productVariants,
+} from '@core/database/schema/product.schema';
+import {
 	buildPaginatedResponse,
 	cursorPaginationClauses,
 } from '@core/database/utils/cursor-pagination.util';
@@ -13,6 +17,29 @@ import type { ITracer } from '@core/tracer';
 import type { InventoryItemDetail, ListInventoryQuery } from '@ferrite/schema';
 import { and, eq, inArray, type SQL, sql } from 'drizzle-orm';
 import { InventoryItemMapper } from '../../mappers/inventory-item.mapper';
+
+export async function executeVariantExistsForStore(
+	tracer: ITracer,
+	db: TDatabase,
+	variantId: string,
+	storeId: string
+): Promise<boolean> {
+	const [row] = await traceDbOp(
+		tracer,
+		'db.product_variants.exists_for_store',
+		{ 'db.table': 'product_variants', 'db.operation': 'select' },
+		() =>
+			db
+				.select({ id: productVariants.id })
+				.from(productVariants)
+				.innerJoin(products, eq(productVariants.productId, products.id))
+				.where(
+					and(eq(productVariants.id, variantId), eq(products.storeId, storeId))
+				)
+				.limit(1)
+	);
+	return !!row;
+}
 
 export async function executeFindInventoryItemByIdAndStore(
 	tracer: ITracer,

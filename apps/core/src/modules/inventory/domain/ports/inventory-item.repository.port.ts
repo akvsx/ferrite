@@ -16,6 +16,7 @@ import {
 export const INVENTORY_ITEM_REPOSITORY = Symbol('IInventoryItemRepository');
 
 export interface IInventoryItemRepository {
+	variantExistsForStore(variantId: string, storeId: string): Promise<boolean>;
 	create(
 		input: CreateInventoryItemInput,
 		tx?: ITransactionContext
