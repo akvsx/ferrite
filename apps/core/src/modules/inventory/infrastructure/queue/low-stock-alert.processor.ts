@@ -7,6 +7,7 @@ import {
 	type EventPayload,
 	eventPayloadSchema,
 } from '@ferrite/schema/common/event-payload.zodschema';
+import { lowStockAlertPayloadSchema } from '@ferrite/schema/inventory/low-stock-alert-payload.zodschema';
 import { Inject } from '@nestjs/common';
 import type { JobHelpers } from 'graphile-worker';
 import { LOW_STOCK_ALERT_QUEUE } from './queue.constraints';
@@ -43,12 +44,18 @@ export class LowStockAlertProcessor extends BaseProcessor<EventPayload> {
 					return ok();
 				}
 
-				const inner = validatedEnvelope.data.payload as {
-					inventoryItemId: string;
-					storeId: string;
-					quantityOnHand: number;
-					threshold: number;
-				};
+				const validatedPayload = lowStockAlertPayloadSchema.safeParse(
+					validatedEnvelope.data.payload
+				);
+
+				if (!validatedPayload.success) {
+					this.logger.error(
+						`Poison Pill Payload: ${validatedPayload.error.message}`
+					);
+					return ok();
+				}
+
+				const inner = validatedPayload.data;
 
 				this.logger.warn(
 					`Low stock alert: item=${inner.inventoryItemId} ` +
