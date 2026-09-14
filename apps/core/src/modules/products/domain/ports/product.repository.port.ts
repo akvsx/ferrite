@@ -1,5 +1,6 @@
 import type { ITransactionContext } from '@common/interfaces/unit-of-work.interface';
 import type {
+	AdminProductDetail,
 	CreateProductInput,
 	GetProductsQuery,
 	ProductDetail,
@@ -27,22 +28,21 @@ export interface IProductRepository {
 	softDelete(id: string, storeId: string): Promise<boolean>;
 
 	// Reads
-	findByIdAndStore(
+	findByIdAndStore(id: string, storeId: string): Promise<ProductDetail | null>;
+
+	findAdminByIdAndStore(
 		id: string,
-		storeId: string,
-		onlyActive?: boolean
-	): Promise<ProductDetail | null>;
+		storeId: string
+	): Promise<AdminProductDetail | null>;
 
 	findBySlugAndStore(
 		slug: string,
-		storeId: string,
-		onlyActive?: boolean
+		storeId: string
 	): Promise<ProductDetail | null>;
 
 	findByStoreId(
 		storeId: string,
-		query: GetProductsQuery,
-		onlyActive?: boolean
+		query: GetProductsQuery
 	): Promise<PaginatedResponse<ProductDetail>>;
 
 	// Helpers

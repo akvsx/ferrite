@@ -1,5 +1,5 @@
 import type { Request } from '@common/types/request';
-import type { FerriteConfig } from '@core/config/ferrite.schema';
+import { loadConfig } from '@common/utils/load-config';
 import { AppLogger } from '@core/logger/logger.service';
 import { type ITracer, OTEL_TRACER } from '@core/tracer';
 import { extractCookie } from '@libs/http/extractCookie';
@@ -44,10 +44,10 @@ export class StorefrontCsrfGuard implements CanActivate {
 		private readonly logger: AppLogger,
 		private readonly reflector: Reflector,
 		@Inject(OTEL_TRACER) private readonly tracer: ITracer,
-		config: ConfigService
+		private readonly config: ConfigService
 	) {
 		this.logger.setContext(this.constructor.name);
-		const ferriteConfig = config.getOrThrow<FerriteConfig>('ferrite');
+		const ferriteConfig = loadConfig(this.config);
 		this.csrfCookieName = ferriteConfig.storefrontAuth.csrf.cookieName;
 	}
 

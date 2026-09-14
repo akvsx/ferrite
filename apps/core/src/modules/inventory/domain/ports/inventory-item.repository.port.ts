@@ -1,10 +1,12 @@
-import { ITransactionContext } from '@common/interfaces/unit-of-work.interface';
+import type { ITransactionContext } from '@common/interfaces/unit-of-work.interface';
 import {
 	AdjustmentType,
 	AvailabilityResult,
 	CreateInventoryItemInput,
+	InventoryAdjustment,
 	InventoryItemDetail,
 	InventoryLevel,
+	ListInventoryAdjustmentsQuery,
 	ListInventoryQuery,
 	LowStockItem,
 	LowStockQuery,
@@ -35,6 +37,10 @@ export interface IInventoryItemRepository {
 		variantId: string,
 		storeId: string
 	): Promise<InventoryItemDetail[]>;
+	listByVariants(
+		variantIds: string[],
+		storeId: string
+	): Promise<Record<string, InventoryItemDetail[]>>;
 
 	adjustStock(
 		inventoryItemId: string,
@@ -46,6 +52,31 @@ export interface IInventoryItemRepository {
 		},
 		tx: ITransactionContext
 	): Promise<InventoryLevel | null>;
+
+	// Reservation lifecycle (consumed by Orders module)
+	reserveStock(
+		inventoryItemId: string,
+		quantity: number,
+		tx: ITransactionContext
+	): Promise<InventoryLevel | null>;
+
+	releaseReservation(
+		inventoryItemId: string,
+		quantity: number,
+		tx: ITransactionContext
+	): Promise<InventoryLevel>;
+
+	consumeReservation(
+		inventoryItemId: string,
+		quantity: number,
+		tx: ITransactionContext
+	): Promise<InventoryLevel>;
+
+	listAdjustments(
+		inventoryItemId: string,
+		storeId: string,
+		query: ListInventoryAdjustmentsQuery
+	): Promise<PaginatedResponse<InventoryAdjustment>>;
 
 	findLowStock(
 		storeId: string,

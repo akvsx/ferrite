@@ -36,6 +36,13 @@
 			"when": 1788591038557,
 			"tag": "0004_odd_doctor_spectrum",
 			"breakpoints": true
+		},
+		{
+			"idx": 5,
+			"version": "7",
+			"when": 1789224288286,
+			"tag": "0005_strange_johnny_blaze",
+			"breakpoints": true
 		}
 	]
 }
