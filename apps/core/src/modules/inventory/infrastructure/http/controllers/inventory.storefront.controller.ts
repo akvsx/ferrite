@@ -2,6 +2,7 @@ import { PublicRoute } from '@common/decorators/public-route.decorator';
 import { type ITracer, OTEL_TRACER } from '@core/tracer';
 import type { AvailabilityResult } from '@ferrite/schema';
 import {
+	BadRequestException,
 	Controller,
 	Get,
 	Inject,
@@ -41,7 +42,9 @@ export class InventoryStorefrontController {
 					: [];
 
 				if (variantIds.length === 0) {
-					return [];
+					throw new BadRequestException(
+						'variantIds query parameter is required'
+					);
 				}
 
 				const result = await this.checkAvailabilityUc.execute({

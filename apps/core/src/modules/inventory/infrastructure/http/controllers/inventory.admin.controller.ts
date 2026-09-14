@@ -135,7 +135,7 @@ export class InventoryAdminController {
 	): Promise<PaginatedResponse<InventoryItemDetail>> {
 		return this.tracer.withSpan('http.admin.inventory.list', async () => {
 			const parsed = ListInventoryQuerySchema.parse(query);
-			const warehouseId = query.warehouseId;
+			const warehouseId = parsed.warehouseId;
 
 			const result = await this.listItemsUc.execute({
 				storeId,

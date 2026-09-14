@@ -90,7 +90,7 @@ export const InventoryAdjustmentSchema = z.object({
 	quantityChange: z.number().int(),
 	reason: z.string().nullable().optional(),
 	adjustedBy: z.uuid().nullable().optional(),
-	createdAt: z.date(),
+	createdAt: z.iso.datetime(),
 });
 
 export type InventoryAdjustment = z.infer<typeof InventoryAdjustmentSchema>;

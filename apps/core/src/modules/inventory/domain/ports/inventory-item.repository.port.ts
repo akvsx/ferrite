@@ -16,6 +16,7 @@ import {
 export const INVENTORY_ITEM_REPOSITORY = Symbol('IInventoryItemRepository');
 
 export interface IInventoryItemRepository {
+	variantExistsForStore(variantId: string, storeId: string): Promise<boolean>;
 	create(
 		input: CreateInventoryItemInput,
 		tx?: ITransactionContext
@@ -35,8 +36,9 @@ export interface IInventoryItemRepository {
 	): Promise<PaginatedResponse<InventoryItemDetail>>;
 	listByVariant(
 		variantId: string,
-		storeId: string
-	): Promise<InventoryItemDetail[]>;
+		storeId: string,
+		query: ListInventoryQuery
+	): Promise<PaginatedResponse<InventoryItemDetail>>;
 	listByVariants(
 		variantIds: string[],
 		storeId: string

@@ -18,6 +18,10 @@ export function CheckAvailabilityDocs() {
 			type: String,
 			description: 'Comma-separated list of variant UUIDs',
 		}),
+		ApiResponse({
+			status: 400,
+			description: 'variantIds query parameter is required',
+		}),
 		ApiResponse({ status: 500, description: 'Internal server error' })
 	);
 }

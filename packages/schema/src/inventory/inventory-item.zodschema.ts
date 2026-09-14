@@ -47,6 +47,7 @@ export type CreateInventoryItemInput = z.infer<
 export const ListInventoryQuerySchema = PaginationInputSchema.extend({
 	search: z.string().optional(),
 	variantId: z.uuid().optional(),
+	warehouseId: z.uuid().optional(),
 });
 
 export type ListInventoryQuery = z.infer<typeof ListInventoryQuerySchema>;

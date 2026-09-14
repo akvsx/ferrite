@@ -110,7 +110,7 @@ export class AdjustStockUseCase implements IAdjustStockUseCase {
 					updatedLevel.quantityOnHand <= item.lowStockThreshold &&
 					item.lowStockThreshold > 0
 				) {
-					await this.enqueue.execute(tx, {
+					const enqueueResult = await this.enqueue.execute(tx, {
 						identifier: LOW_STOCK_ALERT_QUEUE,
 						maxAttempts: 3,
 						eventId: crypto.randomUUID(),
@@ -122,6 +122,9 @@ export class AdjustStockUseCase implements IAdjustStockUseCase {
 							threshold: item.lowStockThreshold,
 						},
 					});
+					if (enqueueResult.isErr()) {
+						throw enqueueResult.error;
+					}
 				}
 
 				return ok(updatedLevel);

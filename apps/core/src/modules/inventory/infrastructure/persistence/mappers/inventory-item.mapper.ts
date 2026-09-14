@@ -1,6 +1,7 @@
 import type {
 	InventoryItem as DbInventoryItem,
 	InventoryLevel as DbInventoryLevel,
+	inventoryAdjustments,
 } from '@core/database/schema/inventory.schema';
 import type { InventoryAdjustment, InventoryItemDetail } from '@ferrite/schema';
 
@@ -24,10 +25,11 @@ export class InventoryItemMapper {
 	}
 
 	static toAdjustmentDomain(
-		row: typeof import('@core/database/schema/inventory.schema').inventoryAdjustments.$inferSelect
+		row: typeof inventoryAdjustments.$inferSelect
 	): InventoryAdjustment {
 		return {
 			...row,
+			createdAt: row.createdAt.toISOString(),
 			reason: row.reason ?? undefined,
 			adjustedBy: row.adjustedBy ?? undefined,
 		};
