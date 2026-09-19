@@ -24,6 +24,43 @@ products/
 └── products.module.ts
 ```
 
+## Cross-Module Integration
+
+The `Products` module aggregates inventory data for its administrative views (often referred to as the "Medusa Approach" for clean module separation). 
+
+- **Internal Port**: It defines an `IInventoryService` port within its own domain layer.
+- **Adapter**: It implements an `InventoryAdapter` in the infrastructure layer that calls the `InventoryModule` to fetch stock levels.
+- **Usage**: The `AdminGetProductUseCase` fetches the base product details, then uses the `IInventoryService` port to fetch `inventoryItems` for all variants, merging them into an `AdminProductDetail` object.
+
+### Admin Get Product Aggregation Flow
+
+The `GET /admin/:productId` endpoint orchestrates the assembly of the `AdminProductDetail` aggregate by querying the database for product data and reaching out to the inventory module.
+
+```mermaid
+sequenceDiagram
+    participant Controller as Admin Controller
+    participant UC as AdminGetProductUseCase
+    participant Repo as ProductRepository
+    participant Adapter as InventoryAdapter
+    participant InvMod as InventoryModule
+
+    Controller->>UC: execute(id, storeId)
+    UC->>Repo: findAdminByIdAndStore(id, storeId)
+    Repo-->>UC: product (ProductDetail)
+    
+    note over UC: Extract all variant IDs
+    
+    UC->>Adapter: getInventoryForVariants(storeId, variantIds)
+    Adapter->>InvMod: GET_VARIANTS_INVENTORY_UC.execute()
+    InvMod-->>Adapter: Record<variantId, InventoryItem[]>
+    Adapter-->>UC: inventoryMap
+    
+    note over UC: Merge inventory items into variant.inventoryItems array
+    
+    UC->>UC: AdminProductDetailSchema.safeParse()
+    UC-->>Controller: AdminProductDetail
+```
+
 ## Domain Errors
 
 | Error | Trigger |
@@ -42,14 +79,14 @@ Two controllers serve different audiences from the same shared use cases.
 - **Auth:** Platform realm (`@UseRealm('platform')`) + `StorePermissionGuard`
 - **Permissions:** `products.read`, `products.create`, `products.update`, `products.delete`
 - **Endpoints:** `GET /`, `GET /:productId`, `POST /`, `PATCH /:productId`, `DELETE /:productId`
-- Returns full `ProductDetail` including `costPrice` on variants.
+- `GET /:productId` orchestrates `AdminGetProductUseCase` to return an `AdminProductDetail`, which includes `costPrice` on variants **and** an array of `inventoryItems` from the `Inventory` module.
 
 ### Storefront (`product.storefront.controller.ts`)
 
 - **Base path:** `stores/:storeId/products`
 - **Auth:** `@PublicRoute()` — no authentication required
 - **Endpoints:** `GET /`, `GET /:productId`, `GET /slug/:slug`
-- Filters to `onlyActive: true` — drafts and archived products are invisible.
+- Enforces `status = 'active'` by passing `query.status = 'active'` — drafts and archived products are invisible.
 - Strips `costPrice` from all variant responses via `omitCostPrice()`.
 
 ## Create Flow (`POST /admin`)
@@ -121,8 +158,8 @@ Soft delete — the product is **never hard-deleted**.
 
 ```mermaid
 flowchart TD
-    A([DELETE /admin/:productId]) --> B[findByIdAndStore]
-    B -->|not found| E([404 ProductNotFoundError])
+    A([DELETE /admin/:productId]) --> B["softDelete(id, storeId)"]
+    B -->|not found / already deleted| E([404 ProductNotFoundError])
     B -->|found| C[BEGIN transaction]
     C --> D["UPDATE products SET
     deletedAt = now()
@@ -139,13 +176,13 @@ The slug and SKU suffix appended on deletion frees the unique constraints immedi
 
 ## Read Paths
 
-| Context | Filter | `costPrice` |
+| Context | Filter | Output Type |
 |---|---|---|
-| Admin `GET /:productId` | any status, not deleted | included |
-| Admin `GET /` (list) | filter by status optional | included |
-| Storefront `GET /:productId` | `status = active` only | stripped |
-| Storefront `GET /slug/:slug` | `status = active` only | stripped |
-| Storefront `GET /` (list) | `status = active` only | stripped |
+| Admin `GET /:productId` | any status, not deleted | `AdminProductDetail` (includes `costPrice` & `inventoryItems`) |
+| Admin `GET /` (list) | filter by status optional | `ProductDetail` (includes `costPrice`) |
+| Storefront `GET /:productId` | `status = active` only | `ProductDetail` (cost stripped) |
+| Storefront `GET /slug/:slug` | `status = active` only | `ProductDetail` (cost stripped) |
+| Storefront `GET /` (list) | `status = active` only | `ProductDetail` (cost stripped) |
 
 All reads are scoped to `storeId` — cross-tenant access is not possible.
 
@@ -159,3 +196,4 @@ Input/output types live in `@ferrite/schema` (not in this module):
 | `UpdateProductInput` | PATCH body (all fields optional) |
 | `UpdateVariantSchema` | Variant entry within update payload; adds optional `id` for identity matching |
 | `ProductDetail` | Full aggregate response (product + images + variants + categories) |
+| `AdminProductDetail` | Admin aggregate response (adds `inventoryItems` array to variants) |
