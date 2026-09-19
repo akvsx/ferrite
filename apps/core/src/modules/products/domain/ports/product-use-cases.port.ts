@@ -1,6 +1,7 @@
 import type { InvalidCursorError } from '@common/errors/invalid-cursor.error';
 import type { IUseCase } from '@common/interfaces/use-case.interface';
 import type {
+	AdminProductDetail,
 	CreateProductInput,
 	GetProductsQuery,
 	ProductDetail,
@@ -46,8 +47,16 @@ export interface IDeleteProductUseCase
 export const GET_PRODUCT_UC = Symbol('IGetProductUseCase');
 export interface IGetProductUseCase
 	extends IUseCase<
-		{ id: string; storeId: string; onlyActive?: boolean },
+		{ id: string; storeId: string },
 		ProductDetail,
+		ProductNotFoundError | Error
+	> {}
+
+export const GET_ADMIN_PRODUCT_UC = Symbol('IGetAdminProductUseCase');
+export interface IGetAdminProductUseCase
+	extends IUseCase<
+		{ id: string; storeId: string },
+		AdminProductDetail,
 		ProductNotFoundError | Error
 	> {}
 
@@ -56,7 +65,7 @@ export interface IGetProductUseCase
 export const GET_PRODUCT_BY_SLUG_UC = Symbol('IGetProductBySlugUseCase');
 export interface IGetProductBySlugUseCase
 	extends IUseCase<
-		{ slug: string; storeId: string; onlyActive?: boolean },
+		{ slug: string; storeId: string },
 		ProductDetail,
 		ProductNotFoundError | Error
 	> {}
@@ -66,7 +75,7 @@ export interface IGetProductBySlugUseCase
 export const LIST_PRODUCTS_UC = Symbol('IListProductsUseCase');
 export interface IListProductsUseCase
 	extends IUseCase<
-		{ storeId: string; query: GetProductsQuery; onlyActive?: boolean },
+		{ storeId: string; query: GetProductsQuery },
 		PaginatedResponse<ProductDetail>,
 		InvalidCursorError | Error
 	> {}
