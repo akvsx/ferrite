@@ -25,7 +25,6 @@ export class ListProductsUseCase implements IListProductsUseCase {
 	async execute(input: {
 		storeId: string;
 		query: GetProductsQuery;
-		onlyActive?: boolean;
 	}): Promise<
 		Result<PaginatedResponse<ProductDetail>, InvalidCursorError | Error>
 	> {
@@ -33,8 +32,7 @@ export class ListProductsUseCase implements IListProductsUseCase {
 			try {
 				const result = await this.productRepo.findByStoreId(
 					input.storeId,
-					input.query,
-					input.onlyActive
+					input.query
 				);
 
 				return ok(result);
