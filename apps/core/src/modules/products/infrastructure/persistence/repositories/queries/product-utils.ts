@@ -8,7 +8,7 @@ import {
 	variantImages,
 	variantLabels,
 } from '@core/database/schema/product.schema';
-import type { ProductDetail } from '@ferrite/schema';
+import type { AdminProductDetail, ProductDetail } from '@ferrite/schema';
 import { and, eq, inArray, isNull } from 'drizzle-orm';
 import { ProductMapper } from '../../mappers/product.mapper';
 
@@ -37,13 +37,9 @@ export function groupBy<T extends Record<string, any>>(
 export async function fetchProductDetail(
 	executor: TDatabase | ReturnType<typeof DrizzleUnitOfWork.unwrap>,
 	id: string,
-	storeId: string,
-	onlyActive?: boolean
+	storeId: string
 ): Promise<ProductDetail | null> {
-	const filters = [storeFilter(id, storeId)];
-	if (onlyActive) {
-		filters.push(eq(products.status, 'active'));
-	}
+	const filters = [storeFilter(id, storeId), eq(products.status, 'active')];
 
 	const [row] = await executor
 		.select()
@@ -87,6 +83,64 @@ export async function fetchProductDetail(
 	const imagesByVariantId = groupBy(vImgRows, 'variantId');
 
 	return ProductMapper.toProductDetail(
+		row,
+		imgRows,
+		variantRows,
+		labelsByVariantId,
+		imagesByVariantId,
+		catRows
+	);
+}
+
+export async function fetchAdminProductDetail(
+	executor: TDatabase | ReturnType<typeof DrizzleUnitOfWork.unwrap>,
+	id: string,
+	storeId: string
+): Promise<AdminProductDetail | null> {
+	const filters = [storeFilter(id, storeId)];
+
+	const [row] = await executor
+		.select()
+		.from(products)
+		.where(and(...filters))
+		.limit(1);
+
+	if (!row) return null;
+
+	const [imgRows, variantRows, catRows] = await Promise.all([
+		executor
+			.select()
+			.from(productImages)
+			.where(eq(productImages.productId, id)),
+		executor
+			.select()
+			.from(productVariants)
+			.where(eq(productVariants.productId, id)),
+		executor
+			.select()
+			.from(productCategories)
+			.where(eq(productCategories.productId, id)),
+	]);
+
+	const variantIds = variantRows.map((v) => v.id);
+	const [labelRows, vImgRows] =
+		variantIds.length > 0
+			? await Promise.all([
+					executor
+						.select()
+						.from(variantLabels)
+						.where(inArray(variantLabels.variantId, variantIds)),
+					executor
+						.select()
+						.from(variantImages)
+						.where(inArray(variantImages.variantId, variantIds)),
+				])
+			: [[], []];
+
+	const labelsByVariantId = groupBy(labelRows, 'variantId');
+	const imagesByVariantId = groupBy(vImgRows, 'variantId');
+
+	return ProductMapper.toAdminProductDetail(
 		row,
 		imgRows,
 		variantRows,

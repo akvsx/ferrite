@@ -24,13 +24,11 @@ export class GetProductBySlugUseCase implements IGetProductBySlugUseCase {
 	async execute(input: {
 		slug: string;
 		storeId: string;
-		onlyActive?: boolean;
 	}): Promise<Result<ProductDetail, ProductNotFoundError | Error>> {
-		return this.tracer.withSpan('use-case.products.getBySlug', async () => {
+		return this.tracer.withSpan('use-case.products.get-by-slug', async () => {
 			const product = await this.productRepo.findBySlugAndStore(
 				input.slug,
-				input.storeId,
-				input.onlyActive
+				input.storeId
 			);
 
 			if (!product) {

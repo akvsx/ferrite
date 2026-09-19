@@ -10,24 +10,45 @@ import {
 import { cursorPaginationClauses } from '@core/database/utils/cursor-pagination.util';
 import { traceDbOp } from '@core/database/utils/trace-db-op.util';
 import type { ITracer } from '@core/tracer';
-import type { GetProductsQuery, ProductDetail } from '@ferrite/schema';
+import type {
+	AdminProductDetail,
+	GetProductsQuery,
+	ProductDetail,
+} from '@ferrite/schema';
 import type { PaginatedResponse } from '@ferrite/schema/common/pagination.zodschema';
 import { and, eq, ilike, inArray, isNull, type SQL } from 'drizzle-orm';
 import { ProductMapper } from '../../mappers/product.mapper';
-import { fetchProductDetail, groupBy } from './product-utils';
+import {
+	fetchAdminProductDetail,
+	fetchProductDetail,
+	groupBy,
+} from './product-utils';
 
 export async function executeFindByIdAndStore(
 	tracer: ITracer,
 	db: TDatabase,
 	id: string,
-	storeId: string,
-	onlyActive?: boolean
+	storeId: string
 ): Promise<ProductDetail | null> {
 	return traceDbOp(
 		tracer,
 		'db.products.findByIdAndStore',
 		{ 'db.table': 'products', 'db.operation': 'select' },
-		() => fetchProductDetail(db, id, storeId, onlyActive)
+		() => fetchProductDetail(db, id, storeId)
+	);
+}
+
+export async function executeFindAdminByIdAndStore(
+	tracer: ITracer,
+	db: TDatabase,
+	id: string,
+	storeId: string
+): Promise<AdminProductDetail | null> {
+	return traceDbOp(
+		tracer,
+		'db.products.findAdminByIdAndStore',
+		{ 'db.table': 'products', 'db.operation': 'select' },
+		() => fetchAdminProductDetail(db, id, storeId)
 	);
 }
 
@@ -35,8 +56,7 @@ export async function executeFindBySlugAndStore(
 	tracer: ITracer,
 	db: TDatabase,
 	slug: string,
-	storeId: string,
-	onlyActive?: boolean
+	storeId: string
 ): Promise<ProductDetail | null> {
 	return traceDbOp(
 		tracer,
@@ -46,11 +66,9 @@ export async function executeFindBySlugAndStore(
 			const filters: SQL[] = [
 				eq(products.slug, slug),
 				eq(products.storeId, storeId),
+				eq(products.status, 'active'),
 				isNull(products.deletedAt),
 			];
-			if (onlyActive) {
-				filters.push(eq(products.status, 'active'));
-			}
 
 			const [row] = await db
 				.select()
@@ -59,7 +77,7 @@ export async function executeFindBySlugAndStore(
 				.limit(1);
 
 			if (!row) return null;
-			return fetchProductDetail(db, row.id, storeId, onlyActive);
+			return fetchProductDetail(db, row.id, storeId);
 		}
 	);
 }
@@ -68,8 +86,7 @@ export async function executeFindByStoreId(
 	tracer: ITracer,
 	db: TDatabase,
 	storeId: string,
-	query: GetProductsQuery,
-	onlyActive?: boolean
+	query: GetProductsQuery
 ): Promise<PaginatedResponse<ProductDetail>> {
 	return traceDbOp(
 		tracer,
@@ -82,9 +99,7 @@ export async function executeFindByStoreId(
 				isNull(products.deletedAt),
 			];
 
-			if (onlyActive) {
-				filters.push(eq(products.status, 'active'));
-			} else if (query.status) {
+			if (query.status) {
 				filters.push(eq(products.status, query.status));
 			}
 
