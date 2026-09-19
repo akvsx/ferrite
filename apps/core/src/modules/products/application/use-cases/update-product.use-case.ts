@@ -7,7 +7,9 @@ import {
 import { AppLogger } from '@core/logger/logger.service';
 import { type ITracer, OTEL_TRACER } from '@core/tracer';
 import type { ProductDetail, UpdateProductInput } from '@ferrite/schema';
+import { ENQUEUE_GRAPHILE_EVENT_UC, type IEnqueue } from '@modules/queue';
 import { Inject, Injectable } from '@nestjs/common';
+import { randomUUID } from 'crypto';
 import { ProductNotFoundError } from '../../domain/errors/product-not-found.error';
 import { ProductSlugInUseError } from '../../domain/errors/product-slug-in-use.error';
 import { SkuAlreadyExistsError } from '../../domain/errors/sku-already-exists.error';
@@ -24,6 +26,7 @@ export class UpdateProductUseCase implements IUpdateProductUseCase {
 		private readonly productRepo: IProductRepository,
 		@Inject(UNIT_OF_WORK) private readonly uow: IUnitOfWork,
 		@Inject(OTEL_TRACER) private readonly tracer: ITracer,
+		@Inject(ENQUEUE_GRAPHILE_EVENT_UC) private readonly enqueue: IEnqueue,
 		private readonly logger: AppLogger
 	) {
 		this.logger.setContext(this.constructor.name);
@@ -80,14 +83,37 @@ export class UpdateProductUseCase implements IUpdateProductUseCase {
 			}
 
 			try {
-				const updated = await this.uow.execute((tx) =>
-					this.productRepo.updateProduct(
+				const updated = await this.uow.execute(async (tx) => {
+					const updatedProduct = await this.productRepo.updateProduct(
 						input.id,
 						input.storeId,
 						input.data,
 						tx
-					)
-				);
+					);
+
+					if (updatedProduct) {
+						// find new variants by comparing with the old product's variants
+						const oldVariantIds = new Set(product.variants.map((v) => v.id));
+						const newVariants = updatedProduct.variants.filter(
+							(v) => !oldVariantIds.has(v.id)
+						);
+
+						if (newVariants.length > 0) {
+							await this.enqueue.execute(tx, {
+								identifier: 'variant-inventory-sync-queue',
+								maxAttempts: 5,
+								eventId: randomUUID(),
+								eventType: 'inventory.variant.sync',
+								payload: {
+									storeId: input.storeId,
+									variantIds: newVariants.map((v) => v.id),
+								},
+							});
+						}
+					}
+
+					return updatedProduct;
+				});
 
 				if (!updated) {
 					return err(new ProductNotFoundError(input.id));
