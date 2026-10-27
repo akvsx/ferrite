@@ -4,11 +4,13 @@ import { RequirePermission } from '@common/decorators/require-permission.decorat
 import { InvalidCursorError } from '@common/errors/invalid-cursor.error';
 import { type ITracer, OTEL_TRACER } from '@core/tracer';
 import {
+	type AdminProductDetail,
 	type PaginatedProductResponse,
 	type PaginationInput,
 	type ProductDetail,
 	productStatus,
 } from '@ferrite/schema';
+import { SupplierNotFoundError } from '@modules/products/domain/errors/supplier-not-found.error';
 import { StorePermissionGuard } from '@modules/store/infrastructure/http/guards/store-permission.guard';
 import {
 	BadRequestException,
@@ -37,10 +39,10 @@ import { SkuAlreadyExistsError } from '../../../domain/errors/sku-already-exists
 import {
 	CREATE_PRODUCT_UC,
 	DELETE_PRODUCT_UC,
-	GET_PRODUCT_UC,
+	GET_ADMIN_PRODUCT_UC,
 	type ICreateProductUseCase,
 	type IDeleteProductUseCase,
-	type IGetProductUseCase,
+	type IGetAdminProductUseCase,
 	type IListProductsUseCase,
 	type IUpdateProductUseCase,
 	LIST_PRODUCTS_UC,
@@ -71,8 +73,8 @@ export class ProductAdminController {
 		private readonly deleteProductUc: IDeleteProductUseCase,
 		@Inject(LIST_PRODUCTS_UC)
 		private readonly listProductsUc: IListProductsUseCase,
-		@Inject(GET_PRODUCT_UC)
-		private readonly getProductUc: IGetProductUseCase,
+		@Inject(GET_ADMIN_PRODUCT_UC)
+		private readonly getAdminProductUc: IGetAdminProductUseCase,
 		@Inject(OTEL_TRACER) private readonly tracer: ITracer
 	) {}
 
@@ -109,9 +111,9 @@ export class ProductAdminController {
 	async getProductById(
 		@Param('storeId', ParseUUIDPipe) storeId: string,
 		@Param('productId', ParseUUIDPipe) productId: string
-	): Promise<ProductDetail> {
+	): Promise<AdminProductDetail> {
 		return this.tracer.withSpan('http.admin.products.getById', async () => {
-			const result = await this.getProductUc.execute({
+			const result = await this.getAdminProductUc.execute({
 				id: productId,
 				storeId,
 			});
@@ -144,6 +146,9 @@ export class ProductAdminController {
 				}
 				if (result.error instanceof SkuAlreadyExistsError) {
 					throw new ConflictException(result.error.message);
+				}
+				if (result.error instanceof SupplierNotFoundError) {
+					throw new BadRequestException(result.error.message);
 				}
 				throw new InternalServerErrorException('Failed to create product');
 			}

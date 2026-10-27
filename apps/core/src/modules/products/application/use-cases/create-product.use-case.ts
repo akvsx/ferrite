@@ -1,4 +1,7 @@
-import { isUniqueViolation } from '@common/errors/handlers/pg-errors';
+import {
+	isFkViolation,
+	isUniqueViolation,
+} from '@common/errors/handlers/pg-errors';
 import { err, ok, type Result } from '@common/interfaces/result.interface';
 import {
 	type IUnitOfWork,
@@ -7,7 +10,10 @@ import {
 import { AppLogger } from '@core/logger/logger.service';
 import { type ITracer, OTEL_TRACER } from '@core/tracer';
 import type { CreateProductInput, ProductDetail } from '@ferrite/schema';
+import { SupplierNotFoundError } from '@modules/products/domain/errors/supplier-not-found.error';
+import { ENQUEUE_GRAPHILE_EVENT_UC, type IEnqueue } from '@modules/queue';
 import { Inject, Injectable } from '@nestjs/common';
+import { randomUUID } from 'crypto';
 import { ProductSlugInUseError } from '../../domain/errors/product-slug-in-use.error';
 import { SkuAlreadyExistsError } from '../../domain/errors/sku-already-exists.error';
 import {
@@ -23,6 +29,7 @@ export class CreateProductUseCase implements ICreateProductUseCase {
 		private readonly productRepo: IProductRepository,
 		@Inject(UNIT_OF_WORK) private readonly uow: IUnitOfWork,
 		@Inject(OTEL_TRACER) private readonly tracer: ITracer,
+		@Inject(ENQUEUE_GRAPHILE_EVENT_UC) private readonly enqueue: IEnqueue,
 		private readonly logger: AppLogger
 	) {
 		this.logger.setContext(this.constructor.name);
@@ -58,11 +65,36 @@ export class CreateProductUseCase implements ICreateProductUseCase {
 			}
 
 			try {
-				const product = await this.uow.execute((tx) =>
-					this.productRepo.createProduct(input.storeId, input.data, tx)
-				);
+				const product = await this.uow.execute(async (tx) => {
+					const createdProduct = await this.productRepo.createProduct(
+						input.storeId,
+						input.data,
+						tx
+					);
+
+					if (createdProduct.variants.length > 0) {
+						await this.enqueue.execute(tx, {
+							identifier: 'variant-inventory-sync-queue',
+							maxAttempts: 5,
+							eventId: randomUUID(),
+							eventType: 'inventory.variant.sync',
+							payload: {
+								storeId: input.storeId,
+								variantIds: createdProduct.variants.map((v) => v.id),
+							},
+						});
+					}
+
+					return createdProduct;
+				});
 				return ok(product);
 			} catch (error: any) {
+				if (isFkViolation(error)) {
+					if (input.data.supplierId) {
+						return err(new SupplierNotFoundError(input.data.supplierId));
+					}
+				}
+
 				if (isUniqueViolation(error)) {
 					if (
 						error.message?.includes('uq_products_store_slug') ||

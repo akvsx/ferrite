@@ -24,13 +24,11 @@ export class GetProductUseCase implements IGetProductUseCase {
 	async execute(input: {
 		id: string;
 		storeId: string;
-		onlyActive?: boolean;
 	}): Promise<Result<ProductDetail, ProductNotFoundError | Error>> {
-		return this.tracer.withSpan('use-case.products.get', async () => {
+		return this.tracer.withSpan('use-case.products.get-product', async () => {
 			const product = await this.productRepo.findByIdAndStore(
 				input.id,
-				input.storeId,
-				input.onlyActive
+				input.storeId
 			);
 
 			if (!product) {

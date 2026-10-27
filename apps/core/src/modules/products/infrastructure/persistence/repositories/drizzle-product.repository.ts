@@ -7,6 +7,7 @@ import { DB } from '@core/database/db.provider';
 import type { TDatabase } from '@core/database/db.type';
 import { type ITracer, OTEL_TRACER } from '@core/tracer';
 import type {
+	AdminProductDetail,
 	CreateProductInput,
 	GetProductsQuery,
 	ProductDetail,
@@ -19,6 +20,7 @@ import { executeCreateProduct } from './queries/create-product.query';
 import { executeSoftDelete } from './queries/delete-product.query';
 import { executeFindExistingSkus } from './queries/exists-sku.query';
 import {
+	executeFindAdminByIdAndStore,
 	executeFindByIdAndStore,
 	executeFindBySlugAndStore,
 	executeFindByStoreId,
@@ -72,44 +74,30 @@ export class DrizzleProductRepository implements IProductRepository {
 
 	async findByIdAndStore(
 		id: string,
-		storeId: string,
-		onlyActive?: boolean
+		storeId: string
 	): Promise<ProductDetail | null> {
-		return executeFindByIdAndStore(
-			this.tracer,
-			this.db,
-			id,
-			storeId,
-			onlyActive
-		);
+		return executeFindByIdAndStore(this.tracer, this.db, id, storeId);
+	}
+
+	async findAdminByIdAndStore(
+		id: string,
+		storeId: string
+	): Promise<AdminProductDetail | null> {
+		return executeFindAdminByIdAndStore(this.tracer, this.db, id, storeId);
 	}
 
 	async findBySlugAndStore(
 		slug: string,
-		storeId: string,
-		onlyActive?: boolean
+		storeId: string
 	): Promise<ProductDetail | null> {
-		return executeFindBySlugAndStore(
-			this.tracer,
-			this.db,
-			slug,
-			storeId,
-			onlyActive
-		);
+		return executeFindBySlugAndStore(this.tracer, this.db, slug, storeId);
 	}
 
 	async findByStoreId(
 		storeId: string,
-		query: GetProductsQuery,
-		onlyActive?: boolean
+		query: GetProductsQuery
 	): Promise<PaginatedResponse<ProductDetail>> {
-		return executeFindByStoreId(
-			this.tracer,
-			this.db,
-			storeId,
-			query,
-			onlyActive
-		);
+		return executeFindByStoreId(this.tracer, this.db, storeId, query);
 	}
 
 	// Helpers

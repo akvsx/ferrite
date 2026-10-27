@@ -60,7 +60,6 @@ export class ProductStorefrontController {
 		return this.tracer.withSpan('http.storefront.products.list', async () => {
 			const result = await this.listProductsUc.execute({
 				storeId,
-				onlyActive: true,
 				query: {
 					...pagination,
 					search,
@@ -75,10 +74,7 @@ export class ProductStorefrontController {
 				}
 				throw new InternalServerErrorException('Failed to list products');
 			}
-			return {
-				...result.value,
-				items: result.value.items.map(this.omitCostPrice),
-			};
+			return result.value;
 		});
 	}
 
@@ -95,7 +91,6 @@ export class ProductStorefrontController {
 				const result = await this.getProductBySlugUc.execute({
 					slug,
 					storeId,
-					onlyActive: true,
 				});
 
 				if (result.isErr()) {
@@ -104,7 +99,7 @@ export class ProductStorefrontController {
 					}
 					throw new NotFoundException('Failed to get product');
 				}
-				return this.omitCostPrice(result.value);
+				return result.value;
 			}
 		);
 	}
@@ -120,7 +115,6 @@ export class ProductStorefrontController {
 			const result = await this.getProductUc.execute({
 				id: productId,
 				storeId,
-				onlyActive: true,
 			});
 
 			if (result.isErr()) {
@@ -129,14 +123,7 @@ export class ProductStorefrontController {
 				}
 				throw new NotFoundException('Failed to get product');
 			}
-			return this.omitCostPrice(result.value);
+			return result.value;
 		});
-	}
-
-	omitCostPrice(product: ProductDetail): ProductDetail {
-		return {
-			...product,
-			variants: product.variants.map(({ costPrice, ...rest }) => rest as any),
-		};
 	}
 }

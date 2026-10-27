@@ -1,6 +1,6 @@
 services:
   ferrite-postgres:
-    image: postgres:18-alpine
+    image: docker.io/library/postgres:18-alpine
     container_name: ferrite-postgres
     ports:
       - "127.0.0.1:5432:5432"
@@ -33,7 +33,7 @@ services:
       - ferrite_network
 
   ferrite-redis-cache:
-    image: redis:8-alpine
+    image: docker.io/library/redis:8-alpine
     container_name: ferrite-redis-cache
     restart: unless-stopped
     ports:
@@ -56,7 +56,7 @@ services:
       - ferrite_network
 
   ferrite-redis-sessions:
-    image: redis:8-alpine
+    image: docker.io/library/redis:8-alpine
     container_name: ferrite-redis-sessions
     restart: unless-stopped
     ports:

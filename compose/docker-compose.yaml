@@ -3,7 +3,7 @@ include:
 
 services:
   ferrite-postgres-exporter:
-    image: prometheuscommunity/postgres-exporter:latest
+    image: docker.io/prometheuscommunity/postgres-exporter:latest
     container_name: ferrite-postgres-exporter
     environment:
       - DATA_SOURCE_NAME=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@ferrite-postgres:5432/${POSTGRES_DB}?sslmode=disable
@@ -16,7 +16,7 @@ services:
       - ferrite_network
 
   ferrite-redis-exporter:
-    image: oliver006/redis_exporter:alpine
+    image: docker.io/oliver006/redis_exporter:alpine
     container_name: ferrite-redis-exporter
     restart: unless-stopped
     ports:
@@ -31,7 +31,7 @@ services:
       - ferrite_network
 
   ferrite-redis-sessions-exporter:
-    image: oliver006/redis_exporter:alpine
+    image: docker.io/oliver006/redis_exporter:alpine
     container_name: ferrite-redis-sessions-exporter
     restart: unless-stopped
     ports:
@@ -46,7 +46,7 @@ services:
       - ferrite_network
 
   ferrite-otel-collector:
-    image: otel/opentelemetry-collector-contrib:latest
+    image: docker.io/otel/opentelemetry-collector-contrib:latest
     container_name: ferrite-otel-collector
     command: ["--config=/etc/otel/config.yaml"]
     volumes:
@@ -63,7 +63,7 @@ services:
       - ferrite_network
 
   ferrite-jaeger:
-    image: jaegertracing/all-in-one:latest
+    image: docker.io/jaegertracing/all-in-one:latest
     container_name: ferrite-jaeger
     environment:
       - COLLECTOR_OTLP_ENABLED=true
@@ -73,7 +73,7 @@ services:
       - ferrite_network
 
   ferrite-prometheus:
-    image: prom/prometheus:latest
+    image: docker.io/prom/prometheus:latest
     container_name: ferrite-prometheus
     volumes:
       - ./monitoring/open-telemetry/prometheus.yaml:/etc/prometheus/prometheus.yml:ro
@@ -87,7 +87,7 @@ services:
       - ferrite_network
 
   ferrite-loki:
-    image: grafana/loki:3.3.2
+    image: docker.io/grafana/loki:3.3.2
     container_name: ferrite-loki
     user: "0"
     command: -config.file=/etc/loki/config.yaml
@@ -100,7 +100,7 @@ services:
       - ferrite_network
 
   ferrite-grafana:
-    image: grafana/grafana:latest
+    image: docker.io/grafana/grafana:latest
     container_name: ferrite-grafana
     environment:
       - GF_AUTH_ANONYMOUS_ENABLED=true

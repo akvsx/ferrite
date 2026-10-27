@@ -121,6 +121,10 @@ export class AuthGuard implements CanActivate {
 					throw new UnauthorizedException(errObj.message);
 				}
 
+				if (errObj._tag === 'InvalidTokenError') {
+					throw new UnauthorizedException(errObj.message);
+				}
+
 				throw new UnauthorizedException('Authentication failed');
 			}
 

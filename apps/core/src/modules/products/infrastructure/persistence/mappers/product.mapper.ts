@@ -7,6 +7,10 @@ import type {
 	variantLabels,
 } from '@core/database/schema/product.schema';
 import {
+	type AdminProductDetail,
+	AdminProductDetailSchema,
+	type AdminProductVariant,
+	AdminProductVariantSchema,
 	type Product,
 	type ProductDetail,
 	ProductDetailSchema,
@@ -86,7 +90,6 @@ export class ProductMapper {
 			name: row.name,
 			price: row.price,
 			compareAtPrice: row.compareAtPrice,
-			costPrice: row.costPrice,
 			thumbnailUrl: row.thumbnailUrl,
 			status: row.status,
 			sortOrder: row.sortOrder,
@@ -110,6 +113,55 @@ export class ProductMapper {
 			images: images.map(ProductMapper.toProductImage),
 			variants: variants.map((v) =>
 				ProductMapper.toProductVariant(
+					v,
+					labelsByVariantId.get(v.id) ?? [],
+					imagesByVariantId.get(v.id) ?? []
+				)
+			),
+			categories: categoryRows.map((c) => ({
+				categoryId: c.categoryId,
+				assignedAt: c.assignedAt.toISOString(),
+			})),
+		});
+	}
+
+	static toAdminProductVariant(
+		row: ProductVariantRow,
+		labels: VariantLabelRow[],
+		images: VariantImageRow[]
+	): AdminProductVariant {
+		return AdminProductVariantSchema.parse({
+			id: row.id,
+			productId: row.productId,
+			sku: row.sku,
+			name: row.name,
+			price: row.price,
+			compareAtPrice: row.compareAtPrice,
+			costPrice: row.costPrice,
+			thumbnailUrl: row.thumbnailUrl,
+			status: row.status,
+			sortOrder: row.sortOrder,
+			createdAt: row.createdAt.toISOString(),
+			updatedAt: row.updatedAt.toISOString(),
+			labels: labels.map(ProductMapper.toVariantLabel),
+			images: images.map(ProductMapper.toVariantImage),
+			inventoryItems: [],
+		});
+	}
+
+	static toAdminProductDetail(
+		row: ProductRow,
+		images: ProductImageRow[],
+		variants: ProductVariantRow[],
+		labelsByVariantId: Map<string, VariantLabelRow[]>,
+		imagesByVariantId: Map<string, VariantImageRow[]>,
+		categoryRows: ProductCategoryRow[]
+	): AdminProductDetail {
+		return AdminProductDetailSchema.parse({
+			...ProductMapper.toProduct(row),
+			images: images.map(ProductMapper.toProductImage),
+			variants: variants.map((v) =>
+				ProductMapper.toAdminProductVariant(
 					v,
 					labelsByVariantId.get(v.id) ?? [],
 					imagesByVariantId.get(v.id) ?? []

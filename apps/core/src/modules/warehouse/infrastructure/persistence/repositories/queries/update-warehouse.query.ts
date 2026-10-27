@@ -21,9 +21,11 @@ export async function executeUpdateWarehouse(
 			db
 				.update(warehouses)
 				.set({
-					...(input.name !== undefined && { name: input.name }),
-					...(input.address !== undefined && { address: input.address }),
-					...(input.isActive !== undefined && { isActive: input.isActive }),
+					...(input.name !== undefined ? { name: input.name } : {}),
+					...(input.address !== undefined ? { address: input.address } : {}),
+					...(input.isActive !== undefined && input.isActive !== null
+						? { isActive: input.isActive }
+						: {}),
 					updatedAt: sql`now()`,
 				})
 				.where(
