@@ -1,6 +1,6 @@
 {
-	"*": ["bunx secretlint"],
+	"*": ["bun secretlint"],
 	"*.{js,ts,jsx,tsx,json,css}": [
-		"bunx biome check --fix --no-errors-on-unmatched"
+		"bun biome check --fix --no-errors-on-unmatched"
 	]
 }
