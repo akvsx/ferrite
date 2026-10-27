@@ -1,0 +1,26 @@
+# Rootless fallback for hosts where netavark bridge networking cannot program
+# firewall rules (e.g. Void Linux rootless podman without ip_tables kernel
+# modules loaded and no sudo to modprobe them).
+#
+# Usage:
+#   podman-compose -f compose/docker-compose.dev.yaml -f compose/docker-compose.pasta.yaml --env-file ./apps/core/.env up --detach
+#
+# Each service gets an isolated user-mode (pasta) stack instead of sharing
+# the ferrite_network bridge, so no iptables/NAT or aardvark-dns is needed.
+# Trade-off: inter-service DNS (ferrite-postgres, ...) does not resolve, so
+# this only fits local dev where the app on the host connects via
+# 127.0.0.1:5432/6379/6380. The monitoring stack in
+# compose/docker-compose.yaml needs the bridge network; on such hosts run:
+#   sudo xbps-install -S aardvark-dns
+#   sudo modprobe ip_tables iptable_nat nf_nat
+# and use the default bridge setup instead.
+services:
+  ferrite-postgres:
+    networks: !reset []
+    network_mode: pasta
+  ferrite-redis-cache:
+    networks: !reset []
+    network_mode: pasta
+  ferrite-redis-sessions:
+    networks: !reset []
+    network_mode: pasta
