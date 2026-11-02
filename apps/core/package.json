@@ -47,7 +47,7 @@
 		"@opentelemetry/sdk-metrics": "^2.10.0",
 		"@opentelemetry/sdk-node": "^0.219.0",
 		"@opentelemetry/sdk-trace-base": "^2.7.0",
-		"@opentelemetry/semantic-conventions": "^1.40.0",
+		"@opentelemetry/semantic-conventions": "^1.43.0",
 		"bullmq": "^5.76.8",
 		"cache-manager": "^7.2.9",
 		"cosmiconfig": "^9.0.1",
